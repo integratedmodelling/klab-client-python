@@ -1,5 +1,5 @@
-from klab.engine import Engine
 from enum import Enum
+from klab.engine import Engine
 
 API_BASE = "/api/v2",
 PUBLIC_BASE = API_BASE + "/public",
