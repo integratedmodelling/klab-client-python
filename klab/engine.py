@@ -1,5 +1,6 @@
 import requests
-from enum import Enum
+
+from utils import DEFAULT_LOCAL_ENGINE_URL
 
 class Engine:
     """
@@ -9,7 +10,7 @@ class Engine:
     url: str
 
     def __init__(self):
-        self.url = self.DEFAULT_LOCAL_ENGINE_URL
+        self.url = DEFAULT_LOCAL_ENGINE_URL
         self.authenticate_local()
 
     def __init__(self, url):
