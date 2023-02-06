@@ -1,0 +1,19 @@
+[project]
+name = "klab-client"
+version = "0.1.0"
+description = "Python client to interact with a running k.LAB Engine."
+authors = [
+    {name = "Ferdinando Villa"},
+    {name = "Andrea Antonello"},
+]
+dependencies = [
+    "requests>=2.28.2"
+]
+requires-python = ">=3.8"
+license = {text = "AGPLv3"}
+
+[tool.pdm]
+
+[build-system]
+requires = ["pdm-pep517>=0.12.0"]
+build-backend = "pdm.pep517.api"
