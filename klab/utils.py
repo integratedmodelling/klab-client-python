@@ -1,4 +1,5 @@
 from enum import Enum
+from .exceptions import KlabIllegalArgumentException
 
 
 API_BASE = "/api/v2"
@@ -114,3 +115,90 @@ class API():
 
     DEAUTHENTICATE_USER = "/api/v2/users/log-out"
     """Called by users to log off from a remote engine."""
+
+
+class NumberUtils():
+
+    @staticmethod
+    def encodesInt(val) -> bool:
+        try:
+            int(val)
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
+    def encodesFloat(val) -> bool:
+        try:
+            float(val)
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
+    def objectArrayFromString( array:str,  splitRegex:str, cls:type) -> list:
+
+        if array.startswith("["):
+            array = array.substring(1)
+        
+        if array.endswith("]"):
+            array = array.substring(0, array.length() - 1)
+        
+        s = array.split(splitRegex)
+        ret = []
+        for i in range(0, len(s)):
+                try:
+                    ret.append(int(s[i]))
+                except ValueError:
+                    try:
+                        ret.append(float(s[i]))
+                    except ValueError:
+                        try:
+                            ret.append(bool(s[i]))
+                        except ValueError:
+                            ret.appends(s[i])
+            # if cls and !Object.class.equals(cls)) {
+            #     ret[i] = Utils.parseAsType(s[i], cls);
+            # } else {
+                # if (encodesDouble(s[i].trim())) {
+                #     ret[i] = Double.parseDouble(s[i].trim());
+                # } else if (encodesInteger(s[i].trim())) {
+                #     ret[i] = Integer.parseInt(s[i].trim());
+                # } else {
+                #     ret[i] = s[i];
+                # }
+        return ret
+
+    @staticmethod
+    def podArrayFromString(array:str, splitRegex:str, cls):
+        pods = NumberUtils.objectArrayFromString(array, splitRegex, cls);
+        iret = [None]*len(pods)
+        fret = [None]*len(pods)
+        bret = [None]*len(pods)
+        nd = 0
+        ni = 0
+        cl = 0
+
+        for i in  range(0, len(pods)):
+            if isinstance(pods[i], float):
+                cl = 4;
+                fret[i] = pods[i]
+                nd+=1
+            elif isinstance(pods[i], int):
+                cl = 2
+                iret[i] = pods[i];
+                ni+=1
+            elif isinstance(pods[i],bool):
+                cl = 5;
+                bret[i] = pods[i]
+                ni+=1
+            
+        match cl:
+            case 2:
+                return iret
+            case 4:
+                return fret
+            case 5:
+                return bret
+        
+        raise KlabIllegalArgumentException("cannot turn array into PODs: type not handled");
