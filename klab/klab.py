@@ -1,7 +1,5 @@
-from engine import Engine
-
-
-
+from .engine import Engine
+from .utils import DEFAULT_LOCAL_ENGINE_URL
 
 class Klab:
     """
@@ -16,14 +14,14 @@ class Klab:
     operation, which depends on the size of the job and the user agreement.
     """
 
-    def __init__(self):
-        self.engine = Engine()
+    def __init__(self, url, username=None, password=None):
+        if username and password:
+            self.engine = Engine(url)
+            self.session = self.engine.authenticate(username, password);
+        else:
+            self.engine = Engine(url)
+            self.session = self.engine.authenticate();
 
-    def __init__(self, url):
-        self.engine = Engine(url)
-
-    def __init__(self, url, username, password):
-        self.engine = Engine(url, username, password)
 
     @staticmethod
     def createLocalDefault():
@@ -36,7 +34,7 @@ class Klab:
         Klab:
             The created local default Klab instance.
         """
-        return Klab()
+        return Klab(DEFAULT_LOCAL_ENGINE_URL)
 
     @staticmethod
     def createRemote(remoteEngineUrl, username, password):
@@ -92,7 +90,8 @@ class Klab:
     
     def close(self):
         if self.engine.isOnline():
-            self.engine.deauthenticate();
+            return self.engine.deauthenticate();
+        return True
         
     
 
