@@ -7,15 +7,15 @@ from klab.klab import *
 class TestKlabConnection(unittest.TestCase):
     
     def setUp(self):
-        self.klabLocalDefault = Klab.createLocalDefault()
+        self.klab = Klab.create()
 
     def tearDown(self) -> None:
-        if self.klabLocalDefault:
-            self.assertTrue(self.klabLocalDefault.close())
+        if self.klab:
+            self.assertTrue(self.klab.close())
 
     def test_local_connection(self):
-        self.assertIsNotNone(self.klabLocalDefault)
-        self.assertTrue(self.klabLocalDefault.isOnline())
+        self.assertIsNotNone(self.klab)
+        self.assertTrue(self.klab.isOnline())
 
 
 

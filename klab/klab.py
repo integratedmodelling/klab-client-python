@@ -24,58 +24,27 @@ class Klab:
 
 
     @staticmethod
-    def createLocalDefault():
+    def create(remoteOrLocalEngineUrl = DEFAULT_LOCAL_ENGINE_URL, username = None, password = None):
         """
-        Connect to local server. Equivalent to `create(localEngineUrl)` using 
-        the default local server URL on port 8283.
-        
-        Returns
-        -------
-        Klab:
-            The created local default Klab instance.
-        """
-        return Klab(DEFAULT_LOCAL_ENGINE_URL)
-
-    @staticmethod
-    def createRemote(remoteEngineUrl, username, password):
-        """
-        Authenticate with a remote engine and open a new user session. Call `close()` to free
+        Authenticate with a local or remote engine and open a new user session. Call `close()` to free
         remote resources.
 
         Parameters
         ----------
-        remoteEngineUrl: str
-            the url to the remote engine, something like: http://127.0.0.1:8283/modeler
+        remoteOrLocalEngineUrl: str
+            the url to the remote or local engine, something like: http://127.0.0.1:8283/modeler.
+            This defaults to DEFAULT_LOCAL_ENGINE_URL
         username:str
+            necessary only for remote engines.
         password:str
+            necessary only for remote engines.
             
         Returns
         -------
         Klab:
             The created remote Klab instance.
         """
-        return Klab(remoteEngineUrl, username, password)
-    
-    @staticmethod
-    def createLocal(localEngineUrl):
-        """
-        Authenticate with a local engine and open the default session. This does not require
-        authentication but only works if the engine is running on the local network and is properly
-        authenticated through a certificate. Calling `close()` is good practice but won't
-        change the state of the session, which can be reconnected to if wished.
-
-        Parameters
-        ----------
-        localEngineUrl: str
-            the url to the local engine, something like: http://127.0.0.1:8283/modeler
-            
-        Returns
-        -------
-        Klab:
-            The created local Klab instance.
-        """
-        return Klab(localEngineUrl)
-    
+        return Klab(remoteOrLocalEngineUrl, username, password)
 
     def isOnline(self):
         """
