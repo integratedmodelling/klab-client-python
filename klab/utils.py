@@ -18,22 +18,47 @@ USER_AGENT_PLATFORM = "client:klab-api"
 
 DEFAULT_LOCAL_ENGINE_URL = "http://127.0.0.1:8283/modeler"
 
-P_EXPORT = "{export}";
-P_CONTEXT = "{context}";
-P_OBSERVATION = "{observation}";
-P_TICKET = "{ticket}";
-P_ESTIMATE = "{estimate}";
+P_EXPORT = "{export}"
+P_CONTEXT = "{context}"
+P_OBSERVATION = "{observation}"
+P_TICKET = "{ticket}"
+P_ESTIMATE = "{estimate}"
 
 class Export(Enum):
-    STRUCTURE = "structure",
-    DATA = "data",
-    VIEW = "view",
-    LEGEND = "legend",
-    REPORT = "report",
-    DATAFLOW = "dataflow",
-    PROVENANCE_FULL = "provenance_full",
+    STRUCTURE = "structure"
+    DATA = "data"
+    VIEW = "view"
+    LEGEND = "legend"
+    REPORT = "report"
+    DATAFLOW = "dataflow"
+    PROVENANCE_FULL = "provenance_full"
     PROVENANCE_SIMPLIFIED = "provenance_simplified"
 
+class ExportFormat(Enum):
+    PNG_IMAGE = ("image/png", [Export.DATA, Export.LEGEND, Export.VIEW])
+    GEOTIFF_RASTER = ("image/tiff", [Export.DATA])
+    GEOJSON_FEATURES = ("application/json", [Export.DATA])
+    JSON_CODE = ("application/json", [Export.LEGEND, Export.STRUCTURE])
+    KDL_CODE = ("text/plain", [Export.DATAFLOW])
+    KIM_CODE = ("text/plain", [Export.PROVENANCE_FULL, Export.PROVENANCE_SIMPLIFIED])
+    ELK_GRAPH_JSON = ("application/json", [Export.DATAFLOW, Export.PROVENANCE_FULL, Export.PROVENANCE_SIMPLIFIED])
+    CSV_TABLE = ("text/csv", [Export.VIEW])
+    PDF_DOCUMENT = ("application/pdf", [Export.REPORT])
+    EXCEL_TABLE = ("application/vnd.ms-excel", [Export.VIEW])
+    WORD_DOCUMENT = ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", [Export.REPORT])
+
+    def getMediaType(self) -> str:
+        return self.value[0]
+    
+    def isText(self) -> bool:
+        mt = self.value[0]
+        return "text/plain" == mt or "application/json" == mt or "text/csv" == mt
+    
+    def isExportAllowed( self, export:Export ) -> bool:
+        allowedList = self.value[1]
+        return export in allowedList
+        
+    
 
 ENDPOINT_AUTHENTICATE_USER = API_BASE + "/users/log-in"
 """Called by users to log in and receive an authentication token for a remote engine. Duplicate from HUB. POST with username and password in data."""
@@ -119,6 +144,10 @@ class API():
 
 
 class NumberUtils():
+
+    NaN = float('nan')
+    POSITIVE_INFINITY = float('inf')
+    NEGATIVE_INFINITY = float('-inf')
 
     @staticmethod
     def encodesInt(val) -> bool:

@@ -2,6 +2,7 @@ import unittest
 
 from klab.klab import *
 from klab.geometry import *
+from klab.observable import *
 
 # run with python3 -m unittest discover tests/
 
@@ -37,8 +38,9 @@ class TestKlabConnection(unittest.TestCase):
         geometrySpecs = self.geometryEncoding.replace("{BOUNDING_BOX}", self.boundingBox).replace(
             "{TIME_PERIOD}", self.timePeriod).replace("{GRID_RESOLUTION_XY}", self.gridResolutionXY).replace("{WKB_SHAPE}", self.wkbShape)
         geometry = KlabGeometry.create(geometrySpecs)
-        print(geometry)
-        # Future<Context> contextTask = klab.submit(Observable.create("earth:Region"),
+        obs = Observable.create("earth:Region")
+        
+        # Future<Context> contextTask = klab.submit(obs,
         #         geometry);
         # Context context = contextTask.get();
         # assert context != null;

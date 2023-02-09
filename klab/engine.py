@@ -1,6 +1,7 @@
 import requests
 from requests.exceptions import HTTPError
 from .utils import DEFAULT_LOCAL_ENGINE_URL, API, KLAB_VERSION, USER_AGENT_PLATFORM
+from klab.observation import *
 
 class Engine:
     """
@@ -79,4 +80,9 @@ class Engine:
     def getUserAgent(self):
         return "k.LAB/" + KLAB_VERSION + " (" + USER_AGENT_PLATFORM + ")"
 	
-	
+    def getObservation(self, artifactId:str) -> ObservationReference:
+        pass
+        # ret = self.get(
+        #         EXPORT_DATA.replace(P_EXPORT, Export.STRUCTURE.name().toLowerCase()).replace(P_OBSERVATION, artifactId),
+        #         ObservationReference.class);
+        # return ret == None or ret.getId() == null) ? null : ret;

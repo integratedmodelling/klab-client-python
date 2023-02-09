@@ -1,5 +1,6 @@
 from .engine import Engine
 from .utils import DEFAULT_LOCAL_ENGINE_URL
+import asyncio
 
 class Klab:
     """

@@ -4,13 +4,23 @@ import sys
 from .utils import NumberUtils
 
 class Granularity(Enum):
-        SINGLE = "SINGLE",
+        SINGLE = "SINGLE"
         MULTIPLE = "MULTIPLE"
 
 class Type(Enum):
-        NUMEROSITY = "NUMEROSITY",
-        TIME = "TIME",
+        NUMEROSITY = "NUMEROSITY"
+        TIME = "TIME"
         SPACE = "SPACE"
+
+class ShapeType(Enum):
+    EMPTY="EMPTY" 
+    POINT="POINT" 
+    LINESTRING="LINESTRING" 
+    POLYGON="POLYGON" 
+    MULTIPOINT="MULTIPOINT" 
+    MULTILINESTRING="MULTILINESTRING" 
+    MULTIPOLYGON="MULTIPOLYGON"	
+
 
 NONDIMENSIONAL = -1
 """Constant for non-dimensional (referenced but not distributed) return value of Dimension#getDimensionality()."""
