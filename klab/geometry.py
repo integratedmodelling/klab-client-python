@@ -216,7 +216,7 @@ class KlabGeometry():
         ret.scalar = True
         return ret
     
-    def newDimension() -> DimensionImpl:
+    def newDimension(self) -> DimensionImpl:
         return DimensionImpl()
 	
     @staticmethod
@@ -233,23 +233,24 @@ class KlabGeometry():
         if geometry == "*":
             return KlabGeometry.scalar();
         
-        for idx in range(i, len(geometry)):
+        idx = i
+        while idx < len(geometry):
             c = geometry[idx]
             if c == '#':
                 ret.granularity = Granularity.MULTIPLE
-            elif (c >= 'A' and c <= 'z') or c == 0x03C3 or c == 0x03C4 or c == 0x03A3 or c == 0x03A4:
+            elif (c >= 'A' and c <= 'z') or c == '\u03C3' or c == '\u03C4' or c == '\u03A3' or c == '\u03A4':
                 dimensionality = ret.newDimension()
-                if c == 'S' or c == 's' or c == 0x03C3 or c == 0x03A3:
+                if c == 'S' or c == 's' or c == '\u03C3' or c == '\u03A3':
                     dimensionality.type = Type.SPACE
-                    if c == 0x03C3 or c == 0x03A3:
+                    if c == '\u03C3' or c == '\u03A3':
                         dimensionality.generic = True
-                    dimensionality.regular = c == 'S' or c == 0x03A3
+                    dimensionality.regular = c == 'S' or c == '\u03A3'
 
-                elif c == 'T' or c == 't' or c == 0x03C4 or c == 0x03A4:
+                elif c == 'T' or c == 't' or c == '\u03C4' or c == '\u03A4':
                     dimensionality.type = Type.TIME
-                    if c == 0x03C4 or c == 0x03A4:
+                    if c == '\u03C4' or c == '\u03A4':
                         dimensionality.generic = True
-                    dimensionality.regular = c == 'T' or c == 0x03A4
+                    dimensionality.regular = c == 'T' or c == '\u03A4'
 
                 else:
                     raise KlabIllegalArgumentException(f"unrecognized geometry dimension identifier {c}");
@@ -273,13 +274,13 @@ class KlabGeometry():
                     for d in range(0, len(dims)):
                         dimspec = dims[d].strip()
                         dsize = NONDIMENSIONAL
-                        if not dimspec.isEmpty():
+                        if len(dimspec)>0:
                             if dimspec == "\u221E":
                                 dsize =  INFINITE_SIZE 
                             else: 
                                 dsize = int(dimspec)
                         
-                        sdimss[d] = dsize;
+                        sdimss.append(dsize)
                     
                     dimensionality.dimensionality = len(sdimss)
                     dimensionality.shape = sdimss
@@ -295,6 +296,7 @@ class KlabGeometry():
                         dimensionality.parameters.update(KlabGeometry.readParameters(shape))
 
                 ret.dimensions.append(dimensionality)
+                idx += 1
 
             elif c == ',':
                 ret.child = KlabGeometry.makeGeometry(geometry, idx + 1)
@@ -302,8 +304,8 @@ class KlabGeometry():
             
         return ret
         
-
-    def readParameters(self, kvs:str):
+    @staticmethod
+    def readParameters(kvs:str):
         ret = {}
         kvpList = kvs.strip().split(",")
         for kvp in kvpList:
@@ -313,10 +315,10 @@ class KlabGeometry():
             
             key = kk[0].strip()
             val = kk[1].strip()
-            val = self.decodeForSerialization(val);
+            val = KlabGeometry.decodeForSerialization(val);
             v = None
             if val.startswith("[") and val.endswith("]"):
-                v = NumberUtils.podArrayFromString(val, "\\s+", None) #getParameterPODType(key));
+                v = NumberUtils.podArrayFromString(val, r"\s+", None) #getParameterPODType(key));
             elif PARAMETER_SPACE_SHAPE != key and NumberUtils.encodesInt(val):
                 v = int(val)
             elif PARAMETER_SPACE_SHAPE != key and NumberUtils.encodesFloat(val):
@@ -324,10 +326,11 @@ class KlabGeometry():
             else:
                 v = val
 
-            ret.put(key, v)
+            ret[key] = v
 
         return ret
 
+    @staticmethod
     def decodeForSerialization(val:str):
         return val.replace("&comma;", ",").replace("&eq;", "=")
 
@@ -362,6 +365,7 @@ class KlabGeometry():
         
         return ret
     
+    @staticmethod
     def encodeDimension(dim:DimensionImpl) -> str:
         ret = ""
 
@@ -414,12 +418,29 @@ class KlabGeometry():
                 sep = ","
                 if first:
                     sep = ""
-                ret += key + "=" + encodeVal(dim.getParameters().get(key))
+                ret += key + "=" + KlabGeometry.encodeVal(dim.getParameters().get(key))
                 first = False
             
             ret += "}"
         
         return ret
+    
+    @staticmethod
+    def encodeVal(val:any):
+        ret = ""
+        if  isinstance(val, list):
+            ret = "[";
+            for v in val:
+                sp = " "
+                if len(ret) == 1:
+                    sp = ""
+                ret += sp + str(v)
+            ret += "]"
+        else:
+            ret = str(val)
+        
+        return ret
+    
 
     @staticmethod
     def isUndefined(shape) -> bool:

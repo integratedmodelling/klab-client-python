@@ -1,5 +1,6 @@
 from enum import Enum
 from .exceptions import KlabIllegalArgumentException
+import re
 
 
 API_BASE = "/api/v2"
@@ -139,12 +140,12 @@ class NumberUtils():
     def objectArrayFromString( array:str,  splitRegex:str, cls:type) -> list:
 
         if array.startswith("["):
-            array = array.substring(1)
+            array = array[1:]
         
         if array.endswith("]"):
-            array = array.substring(0, array.length() - 1)
+            array = array[:-1]
         
-        s = array.split(splitRegex)
+        s = re.split(splitRegex, array)
         ret = []
         for i in range(0, len(s)):
                 try:
@@ -156,7 +157,7 @@ class NumberUtils():
                         try:
                             ret.append(bool(s[i]))
                         except ValueError:
-                            ret.appends(s[i])
+                            ret.append(s[i])
             # if cls and !Object.class.equals(cls)) {
             #     ret[i] = Utils.parseAsType(s[i], cls);
             # } else {
