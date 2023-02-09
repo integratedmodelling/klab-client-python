@@ -86,3 +86,30 @@ class Engine:
         #         EXPORT_DATA.replace(P_EXPORT, Export.STRUCTURE.name().toLowerCase()).replace(P_OBSERVATION, artifactId),
         #         ObservationReference.class);
         # return ret == None or ret.getId() == null) ? null : ret;
+
+
+    def streamExport(observationId:str, target: Export,  format:ExportFormat, output,parameters:list) -> bool:
+        pass
+        # String url = makeUrl(
+        #         EXPORT_DATA.replace(P_EXPORT, target.name().toLowerCase()).replace(P_OBSERVATION, observationId),
+        #         parameters);
+        # try {
+
+        #     Unirest.get(url).accept(format.getMediaType()).header("Authorization", token)
+        #             .header("User-Agent", getUserAgent()).thenConsume(response -> {
+        #                 try {
+        #                     response.getContent().transferTo(output);
+        #                 } catch (IOException e) {
+        #                     // uncheck
+        #                     throw new KlabIOException(e);
+        #                 }
+        #             });
+
+        #     return true;
+
+        # } catch (Throwable t) {
+        #     // just return false
+        # }
+
+        # return false;
+    
