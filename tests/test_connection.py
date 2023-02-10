@@ -1,13 +1,15 @@
 import unittest
+from unittest import TestCase, IsolatedAsyncioTestCase
 
-from klab.klab import *
-from klab.geometry import *
-from klab.observable import *
+from klab.klab import Klab
+from klab.geometry import KlabGeometry
+from klab.observable import Observable
+import asyncio
 
 # run with python3 -m unittest discover tests/
 
 
-class TestKlabConnection(unittest.TestCase):
+class TestKlabConnection(IsolatedAsyncioTestCase):
     ruaha = "EPSG:4326 POLYGON((33.796 -7.086, 35.946 -7.086, 35.946 -9.41, 33.796 -9.41, 33.796 -7.086))"
     """A square piece of Tanzania"""
 
@@ -34,16 +36,17 @@ class TestKlabConnection(unittest.TestCase):
         self.assertTrue(self.klab.isOnline())
 
     def test_geometry_template(self):
-
+        asyncio.run(self.runit())
+    
+    async def runit(self):
         geometrySpecs = self.geometryEncoding.replace("{BOUNDING_BOX}", self.boundingBox).replace(
             "{TIME_PERIOD}", self.timePeriod).replace("{GRID_RESOLUTION_XY}", self.gridResolutionXY).replace("{WKB_SHAPE}", self.wkbShape)
         geometry = KlabGeometry.create(geometrySpecs)
         obs = Observable.create("earth:Region")
         
-        # Future<Context> contextTask = klab.submit(obs,
-        #         geometry);
-        # Context context = contextTask.get();
-        # assert context != null;
+        contextTask = await self.klab.submit(obs, geometry)
+        context = await contextTask.get()
+        self.assertIsNotNone(context)
 
 
 if __name__ == "__main__":

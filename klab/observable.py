@@ -77,7 +77,8 @@ class Observable():
     def __str__(self) -> str:
         string = ""
         if self.value:
-            string += f"{self.value} as {self.semantics}"
+            string += f"{self.value} as "
+        string += self.semantics
         if self.range:
             string += f" {self.range.getLowerBound()} to {self.range.getUpperBound()}"
         if self.unit:

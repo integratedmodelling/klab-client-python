@@ -1,7 +1,7 @@
 import requests
 from .exceptions import *
-from .utils import EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC
-from .observation import ObservationReference, Export, ExportFormat, ObservationRequest, ContextImpl, ObservationImpl
+from .utils import EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC,P_EXPORT,P_OBSERVATION
+from .observation import ObservationReference, Export, ExportFormat, ObservationRequest, ContextImpl, ObservationImpl, ContextRequest
 from .ticket import Ticket, TicketResponse, TicketStatus, TicketType, Estimate
 import asyncio
 
@@ -9,11 +9,12 @@ class Engine:
     """
 
     """
-    token: str
-    url: str
 
     def __init__(self, url):
+        self.token = None
         self.url = url
+        self.acceptHeader = None
+
         while self.url.endswith("/"):
             self.url = self.url[0:-1]
 
@@ -59,9 +60,67 @@ class Engine:
 
     def isOnline(self):
         return self.token != None
+    
+    def accept(self, mediaType:str):
+        self.acceptHeader = mediaType
+        return self
+	
 
-    def get(self, endpoint, parameters=None):
-        pass
+    def get(self, endpoint:str, responseType:any, parameters:list=None):
+        mediaType = "application/json"
+        if self.acceptHeader:
+            mediaType = self.acceptHeader
+            self.acceptHeader = None
+        
+        requestUrl = self.makeUrl(endpoint, parameters)
+        userAgent = self.getUserAgent()
+        headers = {
+            "User-Agent": userAgent,
+            "Accept": mediaType,
+            "Authorization": self.token
+        }
+        try:
+            response = requests.get(requestUrl, headers=headers)
+            response.raise_for_status()
+        except Exception as err:
+            raise err
+        else:
+            jsonResponse = response.json()
+            return jsonResponse
+
+
+    def post(self, endpoint:str, request:any, responseType, pathVariables:list = None):
+        mediaType = "application/json"
+        if self.acceptHeader:
+            mediaType = self.acceptHeader
+            self.acceptHeader = None
+        
+        # TODO
+        # if (pathVariables != null) {
+        # 	for (int i = 0; i < pathVariables.length; i++) {
+        # 		endpoint = endpoint.replace(pathVariables[i].toString(), pathVariables[++i].toString());
+        # 	}
+        # }
+
+        requestUrl = self.makeUrl(endpoint)
+        userAgent = self.getUserAgent()
+        headers = {
+            "User-Agent": userAgent,
+            "Content-Type": "application/json",
+            "Accept": mediaType,
+            "Authorization": self.token
+        }
+
+        try:
+            response = requests.post(requestUrl, headers=headers, data=request.toJson() )
+            response.raise_for_status()
+        except Exception as err:
+            raise err
+        else:
+            jsonResponse = response.json()
+            return jsonResponse
+    
+
 
     def makeUrl(self, endpoint, parameters=[]):
         parms = ""
@@ -81,13 +140,13 @@ class Engine:
         return "k.LAB/" + KLAB_VERSION + " (" + USER_AGENT_PLATFORM + ")"
 
     def getObservation(self, artifactId: str) -> ObservationReference:
-        pass
-        # ret = self.get(
-        #         EXPORT_DATA.replace(P_EXPORT, Export.STRUCTURE.name().toLowerCase()).replace(P_OBSERVATION, artifactId),
-        #         ObservationReference.class);
-        # return ret == None or ret.getId() == null) ? null : ret;
+        endpoint = EndPoint.EXPORT_DATA.value.replace(P_EXPORT, Export.STRUCTURE.name.lower()).replace(P_OBSERVATION, artifactId)
+        ret = self.get(endpoint, ObservationReference)
+        if not ret or not ret.id:
+            return None
+        return ret
 
-    def streamExport(observationId: str, target: Export,  format: ExportFormat, output, parameters: list) -> bool:
+    def streamExport(self, observationId: str, target: Export,  format: ExportFormat, output, parameters: list) -> bool:
         pass
         # String url = makeUrl(
         #         EXPORT_DATA.replace(P_EXPORT, target.name().toLowerCase()).replace(P_OBSERVATION, observationId),
@@ -112,9 +171,9 @@ class Engine:
 
         # return false;
 
-    def submitObservation(request: ObservationRequest) -> str:
+    def submitObservation(self, request: ObservationRequest) -> str:
+        """Submit context request, return ticket number or null in case of error"""
         pass
-    #             """Submit context request, return ticket number or null in case of error"""
         # 	TicketResponse.Ticket response = post(OBSERVE_IN_CONTEXT.replace(P_CONTEXT, request.getContextId()), request,
         # 			TicketResponse.Ticket.class);
         # 	if (response != null && response.getId() != null) {
@@ -122,6 +181,16 @@ class Engine:
         # 	}
         # 	return null;
         # }
+
+
+    def submitContext(self, request:ContextRequest):
+        """Submit context request, return ticket number or null in case of error"""
+        response = self.post(EndPoint.CREATE_CONTEXT.value, request, Ticket)
+        if response:
+            return response.id
+        
+        return None
+	
 
     def getTicket(self, ticketId: str) -> Ticket:
         pass

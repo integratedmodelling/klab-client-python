@@ -2,6 +2,7 @@ from enum import Enum
 from .exceptions import KlabIllegalArgumentException
 import sys
 from .utils import NumberUtils
+import functools
 
 class Granularity(Enum):
         SINGLE = "SINGLE"
@@ -41,20 +42,20 @@ class DimensionImpl():
          self.generic = False
          self.coverage = 1.0
          self.parameters = {}
-         self.shape = None
+         self._shape = None
          self.type = None
 
     
-    def getType() -> Type:
-        return type
+    def getType(self) -> Type:
+        return self.type
 
     def copy(self):
         ret =  DimensionImpl()
         ret.type = self.type
         ret.regular = self.regular
         ret.dimensionality = self.dimensionality
-        if self.shape:
-            ret.shape = self.shape[:]
+        if self._shape:
+            ret._shape = self._shape[:]
         ret.parameters = dict(self.parameters)
         ret.generic = self.generic
         return ret;
@@ -72,20 +73,22 @@ class DimensionImpl():
         return self.coverage
     
     def size(self):
-        if self.shape:
-            self.product(self.shape)
+        if self._shape:
+            self.product(self._shape)
         else:
             return UNDEFINED
 
     def product(self, shape2):
         ret = 1
-        for l in self.shape:
+        for l in self._shape:
             ret *= l
         return ret
 
-    # public long[] shape() {
-    #     return shape == null ? Utils.newArray(UNDEFINED, dimensionality) : shape;
-    # }
+    def shape(self) -> list:
+        if not self._shape:
+            return [UNDEFINED]*self.dimensionality
+        return self._shape
+    
 
     # @Override
     # public String encode(Encoding... options) {
@@ -102,8 +105,8 @@ class DimensionImpl():
     #         throw new KlabIllegalArgumentException("geometry: cannot address a " + dimensionality
     #                 + "-dimensional extent with an offset array of lenght " + offsets.length);
     #     }
-    #     if (shape == null) {
-    #         throw new KlabIllegalArgumentException("geometry: cannot address a geometry with no shape");
+    #     if (_shape == null) {
+    #         throw new KlabIllegalArgumentException("geometry: cannot address a geometry with no _shape");
     #     }
 
     #     if (offsets.length == 1) {
@@ -118,7 +121,7 @@ class DimensionImpl():
     #             * centralized offsetting strategy and use that everywhere, configuring it
     #             * according to and extent types.
     #             */
-    #         return ((shape[1] - offsets[1] - 1) * shape[0]) + offsets[0];
+    #         return ((_shape[1] - offsets[1] - 1) * _shape[0]) + offsets[0];
     #     }
 
     #     return 0;
@@ -135,12 +138,12 @@ class DimensionImpl():
         return self.parameters
     
 
-    # public long[] getShape() {
-    #     return shape;
+    # public long[] get_shape() {
+    #     return _shape;
     # }
 
-    # public void setShape(long[] shape) {
-    #     this.shape = shape;
+    # public void set_shape(long[] _shape) {
+    #     this._shape = _shape;
     # }
 
     # public void setType(Type type) {
@@ -169,7 +172,7 @@ class DimensionImpl():
     #         return false;
     #     }
 
-    #     // TODO must enable a boundary shape to cut any geometry, regular or not, as
+    #     // TODO must enable a boundary _shape to cut any geometry, regular or not, as
     #     // long
     #     // as the dimensionality agrees
 
@@ -207,10 +210,16 @@ class DimensionImpl():
 
 class KlabGeometry():
     def __init__(self) -> None:
-        self.scalar = False
+        self._scalar = False
         self.granularity = Granularity.SINGLE
         self.dimensions = []
         self.child = None
+
+    def isEmpty(self)->bool:
+        return not self.scalar and len(self.dimensions)==0 and self.child == None
+	
+    def isScalar(self)->bool:
+        return self._scalar
 
     @staticmethod
     def create(geometrySpec:str):
@@ -223,7 +232,7 @@ class KlabGeometry():
     @staticmethod
     def scalar():
         ret = KlabGeometry()
-        ret.scalar = True
+        ret._scalar = True
         return ret
     
     def newDimension(self) -> DimensionImpl:
@@ -241,7 +250,7 @@ class KlabGeometry():
             return KlabGeometry.empty()
 
         if geometry == "*":
-            return KlabGeometry.scalar();
+            return KlabGeometry._scalar();
         
         idx = i
         while idx < len(geometry):
@@ -315,7 +324,7 @@ class KlabGeometry():
         return ret
         
     @staticmethod
-    def readParameters(kvs:str):
+    def readParameters(kvs:str) -> dict:
         ret = {}
         kvpList = kvs.strip().split(",")
         for kvp in kvpList:
@@ -355,23 +364,19 @@ class KlabGeometry():
 
         if self.isScalar():
             return "*"
-        
 
         dims = self.dimensions[:]
-
-        
-
-        dims.sort(key=self.compare);
+        dims = sorted(dims, key=functools.cmp_to_key(compareDimensions))
 
         ret = ""
         if self.granularity == Granularity.MULTIPLE:
             ret = "#"
 
         for dim in dims:
-            ret += self.encodeDimension(dim);
+            ret += self.encodeDimension(dim)
         
         if self.child:
-            ret += "," + self.child.encode();
+            ret += "," + self.child.encode()
         
         return ret
     
@@ -404,15 +409,16 @@ class KlabGeometry():
         else:
             raise NotImplementedError()
 
-        ret += dim.getDimensionality()
-        if dim.shape() and not KlabGeometry.isUndefined(dim.shape()):
+        ret += str(dim.getDimensionality())
+        
+        if dim.shape and not KlabGeometry.isUndefined(dim.shape):
             ret += "("
-            for i in range(0, len(dim.shape())):
+            for i in range(0, len(dim.shape)):
                 sep = ","
                 if i == 0:
                     sep = ""
-                size = str(dim.shape()[i])
-                if dim.shape()[i] == INFINITE_SIZE:
+                size = str(dim.shape[i])
+                if dim.shape[i] == INFINITE_SIZE:
                     size = "\u221E"
                 ret += sep + size
 
@@ -428,7 +434,7 @@ class KlabGeometry():
                 sep = ","
                 if first:
                     sep = ""
-                ret += key + "=" + KlabGeometry.encodeVal(dim.getParameters().get(key))
+                ret += sep + key + "=" + KlabGeometry.encodeVal(dim.getParameters().get(key))
                 first = False
             
             ret += "}"
@@ -460,8 +466,8 @@ class KlabGeometry():
         return False
 	
 
-    def compare(item1, item2):
-        if item1.getType() == Type.TIME:
-            return -1
-        else:
-            return 0
+def compareDimensions(item1, item2):
+    if item1.getType() == Type.TIME:
+        return -1
+    else:
+        return 0

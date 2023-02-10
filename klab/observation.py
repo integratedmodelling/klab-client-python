@@ -3,7 +3,8 @@ from .geometry import ShapeType
 from .utils import NumberUtils, Export, ExportFormat
 from .observable import Observable, Range
 from .exceptions import *
-from .engine import TicketHandler, Engine
+# from .engine import TicketHandler, Engine
+import klab.engine as E
 from .ticket import Estimate, Ticket
 
 
@@ -839,7 +840,7 @@ class ObservationRequest():
         self._contextId = contextId
     
     @property
-    def scenarios(self) -> str:
+    def scenarios(self) -> list:
         return self._scenarios
 
     @scenarios.setter
@@ -881,33 +882,102 @@ class ObservationRequest():
     def __str__(self) -> str:
     	return f"ObservationRequest [\n\turn={self.urn}\n\tcontextId={self.contextId}\n\tsearchContextId={self.searchContextId}\n\tscenarios={self.scenarios}]"
     
+class ContextRequest():
+        
+    def __init__(self) -> None:
+        self._geometry = None
+        self._contextType = None
+        self._urn = None
+        self._scenarios = []
+        self._observables = []
+        self._estimate = False
+        self._estimatedCost = -1
 
+    def toJson(self):
+        es = str(self._estimate).lower()
+        ret = """{{"geometry":"{0}","contextType":"{1}","observables":{2},"scenarios":{3},"estimate":{4},"estimatedCost":{5}}}"""
+        ret = ret.format(self._geometry, self._contextType, self._observables, self._scenarios, es, self._estimatedCost)
+        return ret #.encode('utf-8')
+
+
+    @property
+    def geometry(self) -> str:
+        return self._geometry
+
+    @geometry.setter
+    def geometry(self, geometry):
+        self._geometry = geometry
+
+    @property
+    def contextType(self) -> str:
+        return self._contextType
+
+    @contextType.setter
+    def contextType(self, contextType):
+        self._contextType = contextType
+
+    @property
+    def urn(self) -> str:
+        return self._urn
+
+    @urn.setter
+    def urn(self, urn):
+        self._urn = urn
+    
+    @property
+    def scenarios(self) -> list:
+        return self._scenarios
+
+    @scenarios.setter
+    def scenarios(self, scenarios):
+        self._scenarios = scenarios
+    
+    @property
+    def observables(self) -> list:
+        return self._observables
+
+    @observables.setter
+    def observables(self, observables):
+        self._observables = observables
+
+    @property
+    def estimate(self) -> bool:
+        return self._estimate
+
+    @estimate.setter
+    def estimate(self, estimate):
+        self._estimate = estimate
+    
+    @property
+    def estimatedCost(self) -> int:
+        return self._estimatedCost
+
+    @estimatedCost.setter
+    def estimatedCost(self, estimatedCost):
+        self._estimatedCost = estimatedCost
+    
+    def __str__(self) -> str:
+    	return f"ContextRequest [\n\turn={self.urn}\n\contextType={self.contextType}\n\geometry={self.geometry}\n\tscenarios={self.scenarios}]"
 
 
 
 class ContextImpl(ObservationImpl):
-    # /*
-    #     * if defined, these are submitted at the next submit() before the main
-    #     * observable is queried, then cleared.
-    #     */
-    # List<Pair<Observable, Object>> injectedStates = new ArrayList<>();
-    # List<Pair<Observable, IGeometry>> injectedObjects = new ArrayList<>();
 
     def __init__(self, reference: ObservationReference, engine):
         super().__init__(reference, engine)
 
         # if defined, these are submitted at the next submit() before the main
         # observable is queried, then cleared.
-        self.injectedStates = []
-        self.injectedObjects = []
+        self.injectedStates = [] #supposed to be (Observable, Object)
+        self.injectedObjects = [] # supposed to be (Observable, IGeometry)
 
 
     
     async def estimate(self, observable:Observable, arguments:list) -> Estimate:
         request = ObservationRequest()
-        request.setContextId(self.reference.id)
-        request.setEstimate(True)
-        request.setUrn(observable.toString())
+        request.contextId =self.reference.id
+        request.estimate = False
+        request.urn = str(observable)
 
         for state in self.injectedStates:
             # state is a tuple of (Observable, Object)
@@ -919,8 +989,8 @@ class ContextImpl(ObservationImpl):
             request.states[str(object[0])] = str(object[1].encode())
         
 
-        self.injectedStates.clear();
-        self.injectedObjects.clear();
+        self.injectedStates.clear()
+        self.injectedObjects.clear()
 
         for o in arguments:
             if isinstance(o, str):
@@ -928,45 +998,41 @@ class ContextImpl(ObservationImpl):
 
         ticket = self.engine.submitObservation(request)
         if ticket:
-            return TicketHandler<Estimate>(self.engine, ticket, self)
+            return E.TicketHandler<Estimate>(self.engine, ticket, self)
         
         raise KlabIllegalArgumentException(
                 f"Cannot build estimate request from arguments: {arguments}" )
     
 
-    # @Override
-    # public Future<Observation> submit(Observable observable, Object... arguments) {
+    async def submit(self, observable:Observable, arguments:list) -> ObservationImpl:
 
-    #     ObservationRequest request = new ObservationRequest();
-    #     request.setContextId(this.reference.getId());
-    #     request.setEstimate(false);
-    #     request.setUrn(observable.toString());
+        request = ObservationRequest()
+        request.contextId =self.reference.id
+        request.estimate = False
+        request.urn = str(observable)
 
-    #     for (Pair<Observable, Object> state : injectedStates) {
-    #         request.getStates().put(state.getFirst().toString(), state.getSecond().toString());
-    #     }
-    #     for (Pair<Observable, IGeometry> object : injectedObjects) {
-    #         request.getStates().put(object.getFirst().toString(), object.getSecond().encode());
-    #     }
+        for state in self.injectedStates:
+            # state is a tuple of (Observable, Object)
+            request.states[str(state[0])] = str(state[1])
+        
 
-    #     injectedStates.clear();
-    #     injectedObjects.clear();
+        for object in self.injectedObjects:
+            # object is a tuple of (Observable, IGeometry)
+            request.states[str(object[0])] = str(object[1].encode())
 
-    #     for (Object o : arguments) {
-    #         if (o instanceof String) {
-    #             request.getScenarios().add((String) o);
-    #         }
-    #     }
+        self.injectedStates.clear()
+        self.injectedObjects.clear()
 
-    #     String ticket = engine.submitObservation(request);
-    #     if (ticket != null) {
-    #         // TODO updates the context bean when observation arrives!
-    #         return new TicketHandler<Observation>(engine, ticket, this);
-    #     }
+        for o in arguments:
+            if isinstance(o, str):
+                request.scenarios.append(o)
 
-    #     throw new KlabIllegalArgumentException(
-    #             "Cannot build observation request from arguments: " + Arrays.toString(arguments));
-    # }
+        ticket = self.engine.submitObservation(request)
+        if ticket:
+            return E.TicketHandler<Estimate>(self.engine, ticket, self)
+
+        raise KlabIllegalArgumentException(
+            f"Cannot build observation request from arguments: {arguments}" )
 
     # @Override
     # public Future<Observation> submit(Estimate estimate) {
@@ -1056,3 +1122,5 @@ class ContextImpl(ObservationImpl):
     #     }
 
     # }
+
+

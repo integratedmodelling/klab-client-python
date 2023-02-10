@@ -1,5 +1,9 @@
-from .engine import Engine
+from .engine import Engine, TicketHandler
 from .utils import DEFAULT_LOCAL_ENGINE_URL
+from .observable import Observable
+from .observation import ContextImpl, ContextRequest
+from .geometry import KlabGeometry
+from .exceptions import *
 import asyncio
 
 class Klab:
@@ -63,5 +67,34 @@ class Klab:
             return self.engine.deauthenticate();
         return True
         
-    
+    async def submit(self, contextType:Observable,  geometry:KlabGeometry, arguments:list = [] ) -> ContextImpl:
+        """
+        Call with a concept and geometry to create the context observation (accepting all costs) and
+        optionally further observations as semantic types or options.
+        
+        @param contextType the type of the context. The Explorer sets that as earth:Region by
+            default.
+        @param geometry the geometry for the context. Use {@link GeometryBuilder} to create fluently.
+        @param arguments pass semantic types for further observations to be made in the context (if
+            passed, the task will finish after all have been computed). Strings will be
+            interpreted as scenario URNs.
+        """
+        request = ContextRequest()
+        request.contextType = str(contextType)
+        request.geometry = geometry.encode()
+        request.estimate = False
+
+
+        for o in arguments:
+            if isinstance(o, Observable):
+                request.observables.append(o)
+            elif isinstance(o, str):
+                request.scenarios.append(o)
+            
+        if request.geometry != None and request.contextType != None:
+            ticket = self.engine.submitContext(request);
+            if ticket:
+                return TicketHandler(self.engine, ticket, None)
+
+        raise KlabIllegalArgumentException(f"Cannot build estimate request from arguments: {arguments}")
 
