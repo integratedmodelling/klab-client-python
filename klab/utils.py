@@ -18,6 +18,8 @@ USER_AGENT_PLATFORM = "client:klab-api"
 
 DEFAULT_LOCAL_ENGINE_URL = "http://127.0.0.1:8283/modeler"
 
+POLLING_INTERVAL_SEC = 2
+
 P_EXPORT = "{export}"
 P_CONTEXT = "{context}"
 P_OBSERVATION = "{observation}"

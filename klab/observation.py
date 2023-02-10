@@ -3,6 +3,8 @@ from .geometry import ShapeType
 from .utils import NumberUtils, Export, ExportFormat
 from .observable import Observable, Range
 from .exceptions import *
+from .engine import TicketHandler, Engine
+from .ticket import Estimate, Ticket
 
 
 class ObservationExportFormat():
@@ -798,3 +800,259 @@ class ObservationImpl():
 
     def isEmpty(self) -> bool:
         return self.reference == None
+
+
+class ObservationRequest():
+        
+    def __init__(self, urn:str = None, contextId:str = None, contextSearchId:str = None) -> None:
+        self._urn = urn
+        self._contextId = contextId
+        self._searchContextId = contextSearchId
+        self._estimate = False
+        self._estimatedCost = -1
+        self._scenarios = []
+        self._states = {}
+        self._objects = {}
+            
+    @property
+    def urn(self) -> str:
+        return self._urn
+
+    @urn.setter
+    def urn(self, urn):
+        self._urn = urn
+    
+    @property
+    def searchContextId(self) -> str:
+        return self._searchContextId
+
+    @searchContextId.setter
+    def searchContextId(self, searchContextId):
+        self._searchContextId = searchContextId
+    
+    @property
+    def contextId(self) -> str:
+        return self._contextId
+
+    @contextId.setter
+    def contextId(self, contextId):
+        self._contextId = contextId
+    
+    @property
+    def scenarios(self) -> str:
+        return self._scenarios
+
+    @scenarios.setter
+    def scenarios(self, scenarios):
+        self._scenarios = scenarios
+    
+    @property
+    def estimate(self) -> bool:
+        return self._estimate
+
+    @estimate.setter
+    def estimate(self, estimate):
+        self._estimate = estimate
+    
+    @property
+    def estimatedCost(self) -> int:
+        return self._estimatedCost
+
+    @estimatedCost.setter
+    def estimatedCost(self, estimatedCost):
+        self._estimatedCost = estimatedCost
+    
+    @property
+    def states(self) -> dict:
+        return self._states
+
+    @states.setter
+    def states(self, states):
+        self._states = states
+    
+    @property
+    def objects(self) -> dict:
+        return self._objects
+
+    @objects.setter
+    def objects(self, objects):
+        self._objects = objects
+
+    def __str__(self) -> str:
+    	return f"ObservationRequest [\n\turn={self.urn}\n\tcontextId={self.contextId}\n\tsearchContextId={self.searchContextId}\n\tscenarios={self.scenarios}]"
+    
+
+
+
+
+class ContextImpl(ObservationImpl):
+    # /*
+    #     * if defined, these are submitted at the next submit() before the main
+    #     * observable is queried, then cleared.
+    #     */
+    # List<Pair<Observable, Object>> injectedStates = new ArrayList<>();
+    # List<Pair<Observable, IGeometry>> injectedObjects = new ArrayList<>();
+
+    def __init__(self, reference: ObservationReference, engine):
+        super().__init__(reference, engine)
+
+        # if defined, these are submitted at the next submit() before the main
+        # observable is queried, then cleared.
+        self.injectedStates = []
+        self.injectedObjects = []
+
+
+    
+    async def estimate(self, observable:Observable, arguments:list) -> Estimate:
+        request = ObservationRequest()
+        request.setContextId(self.reference.id)
+        request.setEstimate(True)
+        request.setUrn(observable.toString())
+
+        for state in self.injectedStates:
+            # state is a tuple of (Observable, Object)
+            request.states[str(state[0])] = str(state[1])
+        
+
+        for object in self.injectedObjects:
+            # object is a tuple of (Observable, IGeometry)
+            request.states[str(object[0])] = str(object[1].encode())
+        
+
+        self.injectedStates.clear();
+        self.injectedObjects.clear();
+
+        for o in arguments:
+            if isinstance(o, str):
+                request.scenarios.append(o)
+
+        ticket = self.engine.submitObservation(request)
+        if ticket:
+            return TicketHandler<Estimate>(self.engine, ticket, self)
+        
+        raise KlabIllegalArgumentException(
+                f"Cannot build estimate request from arguments: {arguments}" )
+    
+
+    # @Override
+    # public Future<Observation> submit(Observable observable, Object... arguments) {
+
+    #     ObservationRequest request = new ObservationRequest();
+    #     request.setContextId(this.reference.getId());
+    #     request.setEstimate(false);
+    #     request.setUrn(observable.toString());
+
+    #     for (Pair<Observable, Object> state : injectedStates) {
+    #         request.getStates().put(state.getFirst().toString(), state.getSecond().toString());
+    #     }
+    #     for (Pair<Observable, IGeometry> object : injectedObjects) {
+    #         request.getStates().put(object.getFirst().toString(), object.getSecond().encode());
+    #     }
+
+    #     injectedStates.clear();
+    #     injectedObjects.clear();
+
+    #     for (Object o : arguments) {
+    #         if (o instanceof String) {
+    #             request.getScenarios().add((String) o);
+    #         }
+    #     }
+
+    #     String ticket = engine.submitObservation(request);
+    #     if (ticket != null) {
+    #         // TODO updates the context bean when observation arrives!
+    #         return new TicketHandler<Observation>(engine, ticket, this);
+    #     }
+
+    #     throw new KlabIllegalArgumentException(
+    #             "Cannot build observation request from arguments: " + Arrays.toString(arguments));
+    # }
+
+    # @Override
+    # public Future<Observation> submit(Estimate estimate) {
+
+    #     if (((EstimateImpl) estimate).getTicketType() != Type.ObservationEstimate) {
+    #         throw new KlabIllegalArgumentException("the estimate passed is not a context estimate");
+    #     }
+    #     String ticket = engine.submitEstimate(((EstimateImpl) estimate).getEstimateId());
+    #     if (ticket != null) {
+    #         // the handler updates the context catalog when the observation arrives
+    #         return new TicketHandler<Observation>(engine, ticket, this);
+    #     }
+
+    #     throw new KlabIllegalStateException("estimate cannot be used");
+
+    # }
+
+    # @Override
+    # public String getDataflow(ExportFormat format) {
+
+    #     if (format != ExportFormat.ELK_GRAPH_JSON && format != ExportFormat.KDL_CODE) {
+    #         throw new KlabIllegalArgumentException("cannot export a dataflow to " + format);
+    #     }
+
+    #     try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+    #         if (engine.streamExport(reference.getId(), Export.DATAFLOW, format, output)) {
+    #             return output.toString();
+    #         }
+    #     } catch (IOException e) {
+    #         throw new KlabIOException(e);
+    #     }
+
+    #     return null;
+    # }
+
+    # @Override
+    # public String getProvenance(boolean simplified, ExportFormat format) {
+
+    #     if (format != ExportFormat.ELK_GRAPH_JSON && format != ExportFormat.KIM_CODE) {
+    #         throw new KlabIllegalArgumentException("cannot export the provenance graph to " + format);
+    #     }
+
+    #     try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+    #         if (engine.streamExport(reference.getId(),
+    #                 simplified ? Export.PROVENANCE_SIMPLIFIED : Export.PROVENANCE_FULL, format, output)) {
+    #             return output.toString();
+    #         }
+    #     } catch (IOException e) {
+    #         throw new KlabIOException(e);
+    #     }
+
+    #     return null;
+    # }
+
+    # @Override
+    # public Context with(Observable concept, Object value) {
+
+    #     if (value instanceof IGeometry) {
+    #         if (concept.getName() == null) {
+    #             throw new KlabIllegalStateException("observables that create objects must be given an explicit name");
+    #         }
+    #         this.injectedObjects.add(new Pair<>(concept, (IGeometry) value));
+    #     } else {
+    #         this.injectedStates.add(new Pair<>(concept, value));
+    #     }
+
+    #     return this;
+    # }
+
+    # /*
+    #     * Called after an observation to update the context data and ensure the context
+    #     * has the new observation in its catalog.
+    #     * 
+    #     * @Non-API should be package private
+    #     * 
+    #     * @param ret
+    #     */
+    def updateWith(self, ret:ObservationImpl):
+        pass
+    #     this.reference = engine.getObservation(reference.getId());
+    #     for (String name : this.reference.getChildIds().keySet()) {
+    #         if (ret.reference.getId().equals(this.reference.getChildIds().get(name))) {
+    #             catalogIds.put(name, ret.reference.getId());
+    #             catalog.put(ret.reference.getId(), ret);
+    #             break;
+    #         }
+    #     }
+
+    # }

@@ -1,6 +1,6 @@
 from enum import Enum
 
-class Type(Enum):
+class TicketType(Enum):
     ResourceSubmission="ResourceSubmission", 
     ResourcePublication="ResourcePublication", 
     ComponentSetup="ComponentSetup", 
@@ -10,7 +10,7 @@ class Type(Enum):
     ObservationEstimate="ObservationEstimate"
 
 
-class Status(Enum):
+class TicketStatus(Enum):
     OPEN = "OPEN", 
     RESOLVED = "RESOLVED", 
     ERROR = "ERROR"
@@ -23,7 +23,7 @@ class Ticket():
         self._id = None
         self._postDate = None
         self._resolutionDate = None
-        self._status = Status.OPEN
+        self._status = TicketStatus.OPEN
         self._type = None
         self._data = {}
         self._statusMessage = None
@@ -54,7 +54,7 @@ class Ticket():
         self._resolutionDate = resolutionDate
   
     @property
-    def status(self):
+    def status(self) -> TicketStatus:
         return self._status
     
     @status.setter
@@ -62,7 +62,7 @@ class Ticket():
         self._status = status
   
     @property
-    def type(self):
+    def type(self) -> TicketType:
         return self._type
     
     @type.setter
@@ -99,7 +99,7 @@ class Ticket():
 
 
 class Estimate():
-    def __init__(self, id:str, cost:float, currency:str, type:Type, feasible:str):
+    def __init__(self, id:str, cost:float, currency:str, type:TicketType, feasible:str):
         self._estimateId = id
         self._cost = cost
         self._currency = currency
@@ -122,7 +122,7 @@ class Estimate():
         return self._estimateId
     
     @property
-    def getTicketType(self) -> Type:
+    def getTicketType(self) -> TicketType:
         return self._ticketType
     
     # @property
@@ -134,3 +134,15 @@ class Estimate():
     def isFeasible(self) -> bool:
         return self._feasible
     
+
+class TicketResponse():
+    def __init__(self) -> None:
+        self._tickets = []
+    
+    @property
+    def tickets(self) -> list:
+        return self._tickets
+    
+    @tickets.setter
+    def tickets(self, tickets):
+        self._tickets = tickets

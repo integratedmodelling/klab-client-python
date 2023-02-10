@@ -1,6 +1,9 @@
 import requests
-from .utils import EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM
-from .observation import ObservationReference, Export, ExportFormat
+from .exceptions import *
+from .utils import EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC
+from .observation import ObservationReference, Export, ExportFormat, ObservationRequest, ContextImpl, ObservationImpl
+from .ticket import Ticket, TicketResponse, TicketStatus, TicketType, Estimate
+import asyncio
 
 class Engine:
     """
@@ -22,14 +25,14 @@ class Engine:
 
     def authenticate(self):
         """Local engine login, no auth necessary."""
-		
+
         requestUrl = self.makeUrl(EndPoint.PING.value)
         userAgent = self.getUserAgent()
         headers = {
             "User-Agent": userAgent,
-            "Accept":"application/json"
+            "Accept": "application/json"
         }
-        try: 
+        try:
             response = requests.get(requestUrl, headers=headers)
             response.raise_for_status()
         except Exception as err:
@@ -39,14 +42,14 @@ class Engine:
             self.token = jsonResponse.get("localSessionId")
 
         return self.token
-    
+
     def deauthenticate(self):
         # TODO this doesn't have a backend implementation yet, for now return true
         # headers = {
         #     "Authorization":self.token
         # }
         # requestUrl = self.makeUrl(EndPoint.DEAUTHENTICATE_USER.value)
-        # try: 
+        # try:
         #     response = requests.post(requestUrl, headers=headers)
         #     response.raise_for_status()
         # except Exception:
@@ -57,10 +60,8 @@ class Engine:
     def isOnline(self):
         return self.token != None
 
-
     def get(self, endpoint, parameters=None):
         pass
-
 
     def makeUrl(self, endpoint, parameters=[]):
         parms = ""
@@ -71,23 +72,22 @@ class Engine:
                 else:
                     parms += "&"
                 parms += str(parameters[i])
-                i+=1
+                i += 1
                 parms += "=" + str(parameters[i])
 
         return f"{self.url}{endpoint}{parms}"
-    
+
     def getUserAgent(self):
         return "k.LAB/" + KLAB_VERSION + " (" + USER_AGENT_PLATFORM + ")"
-	
-    def getObservation(self, artifactId:str) -> ObservationReference:
+
+    def getObservation(self, artifactId: str) -> ObservationReference:
         pass
         # ret = self.get(
         #         EXPORT_DATA.replace(P_EXPORT, Export.STRUCTURE.name().toLowerCase()).replace(P_OBSERVATION, artifactId),
         #         ObservationReference.class);
         # return ret == None or ret.getId() == null) ? null : ret;
 
-
-    def streamExport(observationId:str, target: Export,  format:ExportFormat, output,parameters:list) -> bool:
+    def streamExport(observationId: str, target: Export,  format: ExportFormat, output, parameters: list) -> bool:
         pass
         # String url = makeUrl(
         #         EXPORT_DATA.replace(P_EXPORT, target.name().toLowerCase()).replace(P_OBSERVATION, observationId),
@@ -111,4 +111,104 @@ class Engine:
         # }
 
         # return false;
-    
+
+    def submitObservation(request: ObservationRequest) -> str:
+        pass
+    #             """Submit context request, return ticket number or null in case of error"""
+        # 	TicketResponse.Ticket response = post(OBSERVE_IN_CONTEXT.replace(P_CONTEXT, request.getContextId()), request,
+        # 			TicketResponse.Ticket.class);
+        # 	if (response != null && response.getId() != null) {
+        # 		return response.getId();
+        # 	}
+        # 	return null;
+        # }
+
+    def getTicket(self, ticketId: str) -> Ticket:
+        pass
+        # ret = self.get(TICKET_INFO.replace(P_TICKET, ticketId), TicketResponse.Ticket.class);
+        # return (ret == null || ret.getId() == null) ? null : ret;
+
+
+class TicketHandler():
+    def __init__(self,  engine: Engine, ticketId: str, context: ContextImpl) -> None:
+        self.engine = engine
+        self.ticketId = ticketId
+        self.context = context
+        self.cancelled = False
+        self.result = None
+
+    def cancel(self):
+        self.cancelled = True
+        # return False ???
+
+    def isCancelled(self) -> bool:
+        return self.cancelled
+
+    def isDone(self) -> bool:
+        return self.result != None
+
+    async def get(self, timeoutSeconds:int = 900):
+        if self.isCancelled():
+            return None
+        time = 0
+        while not self.result:
+            if time > timeoutSeconds:
+                break
+            bean = self.poll(self.engine)
+            if bean:
+                self.result = bean
+                break
+            elif self.isCancelled():
+                break
+            await asyncio.sleep(POLLING_INTERVAL_SEC)
+            time += POLLING_INTERVAL_SEC
+
+        return self.result
+
+    def poll(self, engine: Engine) -> any:
+        ticket = engine.getTicket(self.ticketId)
+        if ticket == None or ticket.status == TicketStatus.ERROR or ticket.id == None:
+            self.cancel()
+            return None
+
+        if ticket.status == TicketStatus.RESOLVED:
+            return self.processTicket(ticket)
+        return None
+
+    def processTicket(self, ticket: Ticket):
+        match ticket.type:
+            case TicketType.ContextEstimate:
+                return self.makeEstimate(ticket)
+            case TicketType.ObservationEstimate:
+                return self.makeEstimate(ticket)
+            case TicketType.ContextObservation:
+                return self.makeContext(ticket)
+            case TicketType.ObservationInContext:
+                return self.makeObservation(ticket)
+
+        raise KlabInternalErrorException(
+            f"unexpected ticket type: {ticket.type}")
+
+    def makeObservation(self,  ticket: Ticket) -> any:
+        if "artifacts" in ticket.data:
+            artSplit = ticket.data["artifacts"].split(",")
+            for oid in artSplit:
+                bean = self.engine.getObservation(oid)
+                ret = ObservationImpl(bean, self.engine)
+                if self.context and ret and ret.reference:
+                    self.context.updateWith(ret)
+                return ret
+        return None
+
+    def makeContext(self, ticket: Ticket):
+        bean = self.engine.getObservation(ticket.data.get("context"))
+        context = ContextImpl(bean, self.engine)
+        if "artifacts" in ticket.data:
+            artSplit = ticket.data["artifacts"].split(",")
+            for oid in artSplit:
+                context.notifyObservation(oid)
+        return context
+
+    def makeEstimate(self,  ticket:Ticket):
+        return Estimate(ticket.data.get("estimate"), float(ticket.data.get("cost")),
+                ticket.data.get("currency"), ticket.type, ticket.data.get("feasible"))
