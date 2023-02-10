@@ -1,9 +1,8 @@
 from enum import Enum
-from klab.geometry import ShapeType
-from klab.utils import NumberUtils, Export, ExportFormat
-from klab.engine import Engine
-from klab.observable import Observable, Range
-from klab.exceptions import *
+from .geometry import ShapeType
+from .utils import NumberUtils, Export, ExportFormat
+from .observable import Observable, Range
+from .exceptions import *
 
 
 class ObservationExportFormat():
@@ -688,7 +687,7 @@ class ObservationReference():
 
 class ObservationImpl():
 
-    def __init__(self, reference: ObservationReference, engine: Engine):
+    def __init__(self, reference: ObservationReference, engine):
         self.reference = reference
         self.engine = engine
         self.catalogIds = {}

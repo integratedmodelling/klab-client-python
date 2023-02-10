@@ -59,65 +59,35 @@ class ExportFormat(Enum):
         return export in allowedList
         
     
+class EndPoint(Enum):
+    AUTHENTICATE_USER = API_BASE + "/users/log-in"
+    """Called by users to log in and receive an authentication token for a remote engine. Duplicate from HUB. POST with username and password in data."""
 
-ENDPOINT_AUTHENTICATE_USER = API_BASE + "/users/log-in"
-"""Called by users to log in and receive an authentication token for a remote engine. Duplicate from HUB. POST with username and password in data."""
+    DEAUTHENTICATE_USER = API_BASE + "/users/log-out"
+    """Called by users to log off from a remote engine. Duplicate from HUB."""
 
-ENDPOINT_DEAUTHENTICATE_USER = API_BASE + "/users/log-out"
-"""Called by users to log off from a remote engine. Duplicate from HUB."""
+    CREATE_CONTEXT = PUBLIC_BASE + "/submit/context"
+    """Post a `ContextRequest` to create a context or get an estimate for it. Returns a ticket to poll and retrieve the outcome when done."""
 
-ENDPOINT_CREATE_CONTEXT = PUBLIC_BASE + "/submit/context"
-"""Post a `ContextRequest` to create a context or get an estimate for it. Returns a ticket to poll and retrieve the outcome when done."""
+    OBSERVE_IN_CONTEXT = PUBLIC_BASE + "/submit/observation/" + P_CONTEXT
+    """Post a `ObservationRequest` to make an observation in an existing context or get an estimate for it. Returns a a ticket to poll and retrieve the outcome when done."""
 
-ENDPOINT_OBSERVE_IN_CONTEXT = PUBLIC_BASE + "/submit/observation/" + P_CONTEXT
-"""Post a `ObservationRequest` to make an observation in an existing context or get an estimate for it. Returns a a ticket to poll and retrieve the outcome when done."""
+    SUBMIT_ESTIMATE = PUBLIC_BASE + "/submit/estimate/" + P_ESTIMATE
+    """Call as GET with an estimate ID to accept the estimate and start an observation (context
+    or observation) for which an estimation was previously made. Returns the ticket
+    corresponding to the running task."""
 
-ENDPOINT_SUBMIT_ESTIMATE = PUBLIC_BASE + "/submit/estimate/" + P_ESTIMATE
-"""Call as GET with an estimate ID to accept the estimate and start an observation (context
-or observation) for which an estimation was previously made. Returns the ticket
-corresponding to the running task."""
+    EXPORT_DATA = PUBLIC_BASE + "/export/" + P_EXPORT + "/" + P_OBSERVATION
+    """Retrieve any of the exportable items in the {@link Export} enum. The Observation path
+    variable should contain the context ID for those request that apply to the entire
+    context, like report, dataflows etc. The Accept header selects the format, which must be
+    appropriate for the content requested."""
 
-ENDPOINT_EXPORT_DATA = PUBLIC_BASE + "/export/" + P_EXPORT + "/" + P_OBSERVATION
-"""Retrieve any of the exportable items in the {@link Export} enum. The Observation path
-variable should contain the context ID for those request that apply to the entire
-context, like report, dataflows etc. The Accept header selects the format, which must be
-appropriate for the content requested."""
-
-ENDPOINT_TICKET_INFO = PUBLIC_BASE + "/ticket/info/" + P_TICKET
-"""Check the status of the passed ticket. Same as the one in API.TICKET but only accessing
-tickets created by calls in the public API and requesting the session as a parameter. GET
-request returns the entire ticket for inspection; asking for a ticket not created in the
-same session is an error."""
-
-class API():
-
-    API_BASE = "/api/v2"
-    """Base for many, but still not all, endpoints. TODO must use everywhere."""
-
-    def url(template, kvp):
-        """
-        Use to simply substitute parameters in URLs:
-        `API.url(API.RESOURCE.RESOLVE_URN, API.P_URN, urn)`
-        """
-        ret = template
-        if kvp:
-            for i in range(0, len(kvp)):
-                what = kvp[i]
-                i+=1
-                wit = kvp[i]
-                ret = template.replace(what, wit)
-        
-        return ret
-    
-    
-    P_URN = "{urn}"
-    """Parameter: the URN being resolved in any endpoints that access resources."""
-
-    P_QUERY = "{query}"
-    """Parameter: query for any GET call used to search"""
-
-    P_CODELIST = "{codelist}"
-    """Parameter: a codelist name for GET requests."""
+    TICKET_INFO = PUBLIC_BASE + "/ticket/info/" + P_TICKET
+    """Check the status of the passed ticket. Same as the one in API.TICKET but only accessing
+    tickets created by calls in the public API and requesting the session as a parameter. GET
+    request returns the entire ticket for inspection; asking for a ticket not created in the
+    same session is an error."""
 
     PING = "/ping"
     """
@@ -133,14 +103,46 @@ class API():
     CAPABILITIES = "/capabilities";
     """Public capabilities endpoint. Anything that has an API has capabilities."""
 
-    AUTHENTICATE_USER = "/api/v2/users/log-in"
-    """
-    Called by users to log in and receive an authentication token for a remote engine.
-    POST with username and password in data.
-    """
+# class API():
 
-    DEAUTHENTICATE_USER = "/api/v2/users/log-out"
-    """Called by users to log off from a remote engine."""
+#     API_BASE = "/api/v2"
+#     """Base for many, but still not all, endpoints. TODO must use everywhere."""
+
+#     def url(template, kvp):
+#         """
+#         Use to simply substitute parameters in URLs:
+#         `API.url(API.RESOURCE.RESOLVE_URN, API.P_URN, urn)`
+#         """
+#         ret = template
+#         if kvp:
+#             for i in range(0, len(kvp)):
+#                 what = kvp[i]
+#                 i+=1
+#                 wit = kvp[i]
+#                 ret = template.replace(what, wit)
+        
+#         return ret
+    
+    
+#     P_URN = "{urn}"
+#     """Parameter: the URN being resolved in any endpoints that access resources."""
+
+#     P_QUERY = "{query}"
+#     """Parameter: query for any GET call used to search"""
+
+#     P_CODELIST = "{codelist}"
+#     """Parameter: a codelist name for GET requests."""
+
+
+
+#     AUTHENTICATE_USER = "/api/v2/users/log-in"
+#     """
+#     Called by users to log in and receive an authentication token for a remote engine.
+#     POST with username and password in data.
+#     """
+
+#     DEAUTHENTICATE_USER = "/api/v2/users/log-out"
+#     """Called by users to log off from a remote engine."""
 
 
 class NumberUtils():

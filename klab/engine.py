@@ -1,7 +1,6 @@
 import requests
-from requests.exceptions import HTTPError
-from .utils import DEFAULT_LOCAL_ENGINE_URL, API, KLAB_VERSION, USER_AGENT_PLATFORM
-from klab.observation import *
+from .utils import EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM
+from .observation import ObservationReference, Export, ExportFormat
 
 class Engine:
     """
@@ -24,7 +23,7 @@ class Engine:
     def authenticate(self):
         """Local engine login, no auth necessary."""
 		
-        requestUrl = self.makeUrl(API.PING)
+        requestUrl = self.makeUrl(EndPoint.PING.value)
         userAgent = self.getUserAgent()
         headers = {
             "User-Agent": userAgent,
@@ -46,7 +45,7 @@ class Engine:
         # headers = {
         #     "Authorization":self.token
         # }
-        # requestUrl = self.makeUrl(API.DEAUTHENTICATE_USER)
+        # requestUrl = self.makeUrl(EndPoint.DEAUTHENTICATE_USER.value)
         # try: 
         #     response = requests.post(requestUrl, headers=headers)
         #     response.raise_for_status()
