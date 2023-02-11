@@ -4,12 +4,20 @@ from unittest import TestCase, IsolatedAsyncioTestCase
 from klab.klab import Klab
 from klab.geometry import KlabGeometry
 from klab.observable import Observable
+import klab
+import logging
 import asyncio
+
+TESTSLOGGER = logging.getLogger("klab-client-py-tests")
 
 # run with python3 -m unittest discover tests/
 
 
 class TestKlabConnection(IsolatedAsyncioTestCase):
+    logging.basicConfig(format = '%(asctime)s|%(module)s|%(levelname)s: %(message)s',
+                    datefmt = '%Y-%m-%d %H:%M:%S', level = logging.DEBUG)
+
+
     ruaha = "EPSG:4326 POLYGON((33.796 -7.086, 35.946 -7.086, 35.946 -9.41, 33.796 -9.41, 33.796 -7.086))"
     """A square piece of Tanzania"""
 
@@ -36,9 +44,9 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         self.assertTrue(self.klab.isOnline())
 
     def test_geometry_template(self):
-        asyncio.run(self.runit())
+        asyncio.run(self._test_geometry_template())
     
-    async def runit(self):
+    async def _test_geometry_template(self):
         geometrySpecs = self.geometryEncoding.replace("{BOUNDING_BOX}", self.boundingBox).replace(
             "{TIME_PERIOD}", self.timePeriod).replace("{GRID_RESOLUTION_XY}", self.gridResolutionXY).replace("{WKB_SHAPE}", self.wkbShape)
         geometry = KlabGeometry.create(geometrySpecs)

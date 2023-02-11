@@ -1,9 +1,14 @@
 import requests
 from .exceptions import *
-from .utils import EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC,P_EXPORT,P_OBSERVATION
+from .utils import EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC,P_EXPORT,P_OBSERVATION,P_TICKET
 from .observation import ObservationReference, Export, ExportFormat, ObservationRequest, ContextImpl, ObservationImpl, ContextRequest
 from .ticket import Ticket, TicketResponse, TicketStatus, TicketType, Estimate
 import asyncio
+
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
 
 class Engine:
     """
@@ -66,7 +71,7 @@ class Engine:
         return self
 	
 
-    def get(self, endpoint:str, responseType:any, parameters:list=None):
+    def get(self, endpoint:str, parameters:list=None):
         mediaType = "application/json"
         if self.acceptHeader:
             mediaType = self.acceptHeader
@@ -89,7 +94,7 @@ class Engine:
             return jsonResponse
 
 
-    def post(self, endpoint:str, request:any, responseType, pathVariables:list = None):
+    def post(self, endpoint:str, request:any, pathVariables:list = None):
         mediaType = "application/json"
         if self.acceptHeader:
             mediaType = self.acceptHeader
@@ -141,10 +146,10 @@ class Engine:
 
     def getObservation(self, artifactId: str) -> ObservationReference:
         endpoint = EndPoint.EXPORT_DATA.value.replace(P_EXPORT, Export.STRUCTURE.name.lower()).replace(P_OBSERVATION, artifactId)
-        ret = self.get(endpoint, ObservationReference)
-        if not ret or not ret.id:
+        ret = self.get(endpoint)
+        if not ret or 'id' not in ret:
             return None
-        return ret
+        return ObservationReference.fromDict(ret)
 
     def streamExport(self, observationId: str, target: Export,  format: ExportFormat, output, parameters: list) -> bool:
         pass
@@ -183,19 +188,23 @@ class Engine:
         # }
 
 
-    def submitContext(self, request:ContextRequest):
+    def submitContext(self, request:ContextRequest) -> Ticket:
         """Submit context request, return ticket number or null in case of error"""
-        response = self.post(EndPoint.CREATE_CONTEXT.value, request, Ticket)
+        LOGGER.debug(f"submit context...")
+        response = self.post(EndPoint.CREATE_CONTEXT.value, request)
         if response:
-            return response.id
+            return Ticket.fromDict(response)
         
         return None
 	
 
     def getTicket(self, ticketId: str) -> Ticket:
-        pass
-        # ret = self.get(TICKET_INFO.replace(P_TICKET, ticketId), TicketResponse.Ticket.class);
-        # return (ret == null || ret.getId() == null) ? null : ret;
+        LOGGER.debug(f"get ticket info...")
+        ret = self.get(EndPoint.TICKET_INFO.value.replace(P_TICKET, ticketId))
+        if ret and 'id' in ret:
+            return Ticket.fromDict(ret)
+        return None  
+        
 
 
 class TicketHandler():

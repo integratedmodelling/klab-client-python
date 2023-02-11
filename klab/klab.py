@@ -6,6 +6,12 @@ from .geometry import KlabGeometry
 from .exceptions import *
 import asyncio
 
+import logging
+
+LOGGER = logging.getLogger(__name__)
+
+
+
 class Klab:
     """
     The main k.LAB client class. A client object represents a user session in a local or remote
@@ -67,7 +73,7 @@ class Klab:
             return self.engine.deauthenticate();
         return True
         
-    async def submit(self, contextType:Observable,  geometry:KlabGeometry, arguments:list = [] ) -> ContextImpl:
+    async def submit(self, contextType:Observable,  geometry:KlabGeometry, arguments:list = [] ) -> TicketHandler:
         """
         Call with a concept and geometry to create the context observation (accepting all costs) and
         optionally further observations as semantic types or options.
@@ -79,11 +85,14 @@ class Klab:
             passed, the task will finish after all have been computed). Strings will be
             interpreted as scenario URNs.
         """
+
+
         request = ContextRequest()
         request.contextType = str(contextType)
         request.geometry = geometry.encode()
         request.estimate = False
 
+        LOGGER.debug(f"klab submit with: {request}")
 
         for o in arguments:
             if isinstance(o, Observable):
@@ -92,9 +101,10 @@ class Klab:
                 request.scenarios.append(o)
             
         if request.geometry != None and request.contextType != None:
-            ticket = self.engine.submitContext(request);
+            ticket = self.engine.submitContext(request)
             if ticket:
-                return TicketHandler(self.engine, ticket, None)
+                LOGGER.debug(f"got ticket: {ticket}")
+                return TicketHandler(self.engine, ticket.id, None)
 
         raise KlabIllegalArgumentException(f"Cannot build estimate request from arguments: {arguments}")
 

@@ -2,25 +2,9 @@ from enum import Enum
 from .exceptions import KlabIllegalArgumentException
 import sys
 from .utils import NumberUtils
+from .types import Granularity, Type, TimeResolutionType, DimensionType
 import functools
 
-class Granularity(Enum):
-        SINGLE = "SINGLE"
-        MULTIPLE = "MULTIPLE"
-
-class Type(Enum):
-        NUMEROSITY = "NUMEROSITY"
-        TIME = "TIME"
-        SPACE = "SPACE"
-
-class ShapeType(Enum):
-    EMPTY="EMPTY" 
-    POINT="POINT" 
-    LINESTRING="LINESTRING" 
-    POLYGON="POLYGON" 
-    MULTIPOINT="MULTIPOINT" 
-    MULTILINESTRING="MULTILINESTRING" 
-    MULTIPOLYGON="MULTIPOLYGON"	
 
 
 NONDIMENSIONAL = -1
@@ -34,6 +18,70 @@ INFINITE_SIZE = sys.maxsize
 
 PARAMETER_SPACE_SHAPE = "shape"
 """Shape specs in WKB."""
+
+PARAMETER_SPACE_BOUNDINGBOX = "bbox"
+"""Bounding box as a [minX, maxX, minY, maxY]"""
+
+PARAMETER_SPACE_LONLAT = "latlon"
+"""Latitude,longitude as a [lon, lat]"""
+
+PARAMETER_ENUMERATED_AUTHORITY = "authority"
+"""Authority specifier for generic enumerated extent (may be D or S)"""
+
+PARAMETER_ENUMERATED_BASE_IDENTITY = "baseidentity"
+"""Base identity specifier for generic enumerated extent (may be D or S)"""
+
+PARAMETER_ENUMERATED_IDENTIFIER = "identifier"
+"""Concrete identity for enumerated extent (D or S)"""
+
+PARAMETER_SPACE_PROJECTION = "proj"
+PARAMETER_SPACE_GRIDRESOLUTION = "sgrid"
+"""Grid resolution as a string 'n unit'"""
+
+PARAMETER_SPACE_SHAPE = "shape"
+"""Shape specs in WKB"""
+
+PARAMETER_SPACE_RESOURCE_URN = "urn"
+"""Resource URN to retrieve the space extent"""
+
+PARAMETER_TIME_PERIOD = "period"
+"""Time period as a [startMillis, endMillis]"""
+
+PARAMETER_TIME_GRIDRESOLUTION = "tgrid"
+"""time period as a long"""
+
+PARAMETER_TIME_START = "tstart"
+"""time period as a long"""
+
+PARAMETER_TIME_END = "tend"
+"""time period as a long"""
+
+PARAMETER_TIME_REPRESENTATION = "ttype"
+"""Time representation: one of generic, specific, grid or real."""
+
+PARAMETER_TIME_TRANSITIONS = "transitions"
+"""Irregular grid transition points, start to end."""
+
+PARAMETER_TIME_SCOPE = "tscope"
+"""Time scope: integer or floating point number of PARAMETER_TIME_SCOPE_UNITs."""
+
+PARAMETER_TIME_LOCATOR = "time"
+"""Specific time location, for locator geometries. Expects a long, a date or a ITimeInstant."""
+
+PARAMETER_TIME_SCOPE_UNIT = "tunit"
+
+PARAMETER_TIME_COVERAGE_UNIT = "coverageunit"
+
+PARAMETER_TIME_COVERAGE_START = "coveragestart"
+
+PARAMETER_TIME_COVERAGE_END = "coverageend"
+
+
+def compareDimensions(item1, item2):
+    if item1.getType() == Type.TIME:
+        return -1
+    else:
+        return 0
 
 class DimensionImpl():
     def __init__(self) -> None:
@@ -237,6 +285,9 @@ class KlabGeometry():
     
     def newDimension(self) -> DimensionImpl:
         return DimensionImpl()
+    
+    def addDimension(self, dim:DimensionImpl):
+        self.dimensions.append(dim)
 	
     @staticmethod
     def makeGeometry(geometry:str, i:int):
@@ -352,6 +403,10 @@ class KlabGeometry():
     @staticmethod
     def decodeForSerialization(val:str):
         return val.replace("&comma;", ",").replace("&eq;", "=")
+    
+    @staticmethod
+    def encodeForSerialization(val:str):
+        return val.replace(",", "&comma;").replace("=", "&eq;")
 
     def encode(self) -> str:
         """
@@ -466,8 +521,202 @@ class KlabGeometry():
         return False
 	
 
-def compareDimensions(item1, item2):
-    if item1.getType() == Type.TIME:
-        return -1
-    else:
-        return 0
+
+    
+
+class KlabSpace():
+
+    @staticmethod
+    def isWKT(urn:str):
+        return ("POLYGON" in urn or "POINT" in urn or "LINESTRING" in urn) and "(" in urn and ")" in urn
+
+
+class SpaceBuilder():
+    def __init__(self, space:DimensionImpl) -> None:
+        self.space = space
+
+    def generic(self):
+        self.space.generic = True
+        return self
+    
+    def regular(self):
+        self.space.regular = True
+        return self
+    
+    def size(self, x:int, y:int):
+        self.space.shape = [x,y]
+        self.space.regular = True
+        return self
+
+    def sizeN(self, n:int):
+        self.space.shape = [n]
+        self.space.regular = False
+        return self
+
+    def boundingBox(self, x1:float, x2:float,  y1:float,  y2:float):
+        self.space.parameters[PARAMETER_SPACE_BOUNDINGBOX] = [x1, x2, y1, y2]
+        return self
+
+    def shape(self, wktb:str):
+        self.space.parameters[PARAMETER_SPACE_SHAPE] = KlabGeometry.encodeForSerialization(wktb)
+        return self
+
+    def urn(self, urn:str):
+        self.space.parameters[PARAMETER_SPACE_RESOURCE_URN] = KlabGeometry.encodeForSerialization(urn)
+        return self
+
+    def resolution(self, gridResolution:str):
+        self.space.parameters[PARAMETER_SPACE_GRIDRESOLUTION] = gridResolution
+        return self
+
+    def build(self) -> DimensionImpl:
+        return self.space
+    
+class TimeBuilder():
+    def __init__(self, time:DimensionImpl) -> None:
+        self.time = time
+    
+    def generic(self):
+        self.time.generic = True
+        return self
+    
+    def regular(self):
+        self.time.regular = True
+        return self
+    
+    def covering(self, start:int, end:int):
+        self.time.parameters[PARAMETER_TIME_COVERAGE_START] = start
+        self.time.parameters[PARAMETER_TIME_COVERAGE_END] = end
+        return self
+    
+    def start(self, start:int):
+        self.time.parameters[PARAMETER_TIME_START] = start
+        return self
+    
+    def end(self, end:int):
+        self.time.parameters[PARAMETER_TIME_END] = end
+        return self
+    
+    def resolution(self, resolution:TimeResolutionType, multiplier:float):
+        self.time.parameters[PARAMETER_TIME_SCOPE] = multiplier
+        self.time.parameters[PARAMETER_TIME_SCOPE_UNIT] = resolution.name.lower()
+        return self
+
+    def size(self, n:int):
+        self.time.shape = [n]
+        self.time.regular = False
+        return self
+
+    def build(self) -> DimensionImpl:
+        return self.time
+    
+
+class GeometryBuilder():
+    def __init__(self) -> None:
+        self.space = None
+        self.time = None
+
+    #     /**
+    #     * Create a spatial region from a resource URN (specifying a polygon). The
+    #     * string may also specify a WKT polygon using the k.LAB conventions (preceded
+    #     * by the EPSG: projection). The resulting
+    #     *
+    #     * @param urn
+    #     * @param resolution a string in the format "1 km"
+    #     * @return
+    #     */
+    def region(self, urn:str):
+        if KlabSpace.isWKT(urn):
+            return self.space().shape(urn).size(1).build()
+        return self.space().urn(urn).size(1).build()
+    
+
+    # /**
+    #     * Create a spatial polygon of multiplicity 1 from a lat/lon bounding box and a
+    #     * resolution. The box is "straight" with the X axis specifying
+    #     * <em>longitude</em>.
+    #     *
+    #     * @param resolution a string in the format "1 km"
+    #     * @return
+    #     */
+    # public GeometryBuilder grid(double x1, double x2, double y1, double y2) {
+    #     return space().regular().boundingBox(x1, x2, y1, y2).build();
+    # }
+
+    # /**
+    #     * Create a spatial grid from a resource URN (specifying a polygon) and a
+    #     * resolution. The string may also specify a WKT polygon using the k.LAB
+    #     * conventions (preceded by the EPSG: projection).
+    #     *
+    #     * @param urn
+    #     * @param resolution a string in the format "1 km"
+    #     * @return
+    #     */
+    # public GeometryBuilder grid(String urn, String resolution) {
+    #     if (ISpace.isWKT(urn)) {
+    #         return space().regular().resolution(resolution).shape(urn).build();
+    #     }
+    #     return space().regular().resolution(resolution).urn(urn).build();
+    # }
+
+    # /**
+    #     * Create a spatial grid from a lat/lon bounding box and a resolution. The box
+    #     * is "straight" with the X axis specifying <em>longitude</em>.
+    #     *
+    #     * @param resolution a string in the format "1 km"
+    #     * @return
+    #     */
+    # public GeometryBuilder grid(double x1, double x2, double y1, double y2, String resolution) {
+    #     return space().regular().resolution(resolution).boundingBox(x1, x2, y1, y2).build();
+    # }
+
+    # /**
+    #     * Create a temporal extent in years. If one year is passed, build a single-year
+    #     * extent; otherwise build a yearly grid from the first year to the second.
+    #     * 
+    #     * @param years
+    #     * @return
+    #     */
+    # public GeometryBuilder years(int... years) {
+    #     if (years != null) {
+    #         if (years.length == 1) {
+    #             return time().start(startOfYear(years[0])).end(startOfYear(years[0] + 1)).size(1).build();
+    #         } else if (years.length == 2) {
+    #             return time().start(startOfYear(years[0])).end(startOfYear(years[1])).size((long) (years[1] - years[0]))
+    #                     .resolution(ITime.Resolution.Type.YEAR, 1).build();
+    #         }
+    #         // TODO irregular coverage?
+    #     }
+    #     throw new KlabIllegalArgumentException("wrong year parameters passed to TimeBuilder.years");
+    # }
+
+    # private long startOfYear(int i) {
+    #     ZonedDateTime date = LocalDateTime.of(i, 1, 1, 0, 0).atZone(ZoneOffset.UTC);
+    #     return date.toInstant().toEpochMilli();
+    # }
+
+
+    def space() -> SpaceBuilder:
+        space = DimensionImpl()
+        space.type  = DimensionType.SPACE
+        space.dimensionality = 2
+        return SpaceBuilder(space)
+    
+
+    def time() -> TimeBuilder:
+        time = DimensionImpl()
+        time.type = DimensionType.TIME
+        time.dimensionality = 1
+        return TimeBuilder()
+    
+
+    def build(self) -> KlabGeometry:
+        ret = KlabGeometry()
+        if self.space:
+            ret.addDimension(self.space)
+        
+        if self.time:
+            ret.addDimension(self.time)
+        
+        return ret
+    

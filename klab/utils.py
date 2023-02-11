@@ -2,7 +2,6 @@ from enum import Enum
 from .exceptions import KlabIllegalArgumentException
 import re
 
-
 API_BASE = "/api/v2"
 PUBLIC_BASE = API_BASE + "/public"
 
@@ -59,6 +58,24 @@ class ExportFormat(Enum):
     def isExportAllowed( self, export:Export ) -> bool:
         allowedList = self.value[1]
         return export in allowedList
+
+    @staticmethod
+    def fromMediaType(value:str):
+        if not value:
+            return None
+        for ef in ExportFormat:
+            if ef.value.lower() == value.lower():
+                return ef
+        raise KlabIllegalArgumentException(f"No ExportFormat available by the value: {value}")
+
+    @staticmethod
+    def fromMediaTypeList(value:list):
+        efl = []
+        for v in value:
+            ef = ExportFormat.fromValue(v)
+            if ef:
+                efl.append(ef)
+        return efl
         
     
 class EndPoint(Enum):
