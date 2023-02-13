@@ -2,9 +2,9 @@ from enum import Enum
 from .exceptions import KlabIllegalArgumentException
 import sys
 from .utils import NumberUtils
-from .types import Granularity, Type, TimeResolutionType, DimensionType
+from .types import Granularity,  TimeResolutionType, DimensionType
 import functools
-
+import datetime
 
 
 NONDIMENSIONAL = -1
@@ -78,27 +78,27 @@ PARAMETER_TIME_COVERAGE_END = "coverageend"
 
 
 def compareDimensions(item1, item2):
-    if item1.getType() == Type.TIME:
+    if item1.getType() == DimensionType.TIME:
         return -1
     else:
         return 0
 
+
 class DimensionImpl():
     def __init__(self) -> None:
-         self.regular = False
-         self.dimensionality = 0
-         self.generic = False
-         self.coverage = 1.0
-         self.parameters = {}
-         self._shape = None
-         self.type = None
+        self.regular = False
+        self.dimensionality = 0
+        self.generic = False
+        self.coverage = 1.0
+        self.parameters = {}
+        self._shape = None
+        self.type = None
 
-    
-    def getType(self) -> Type:
+    def getType(self) -> DimensionType:
         return self.type
 
     def copy(self):
-        ret =  DimensionImpl()
+        ret = DimensionImpl()
         ret.type = self.type
         ret.regular = self.regular
         ret.dimensionality = self.dimensionality
@@ -106,20 +106,20 @@ class DimensionImpl():
             ret._shape = self._shape[:]
         ret.parameters = dict(self.parameters)
         ret.generic = self.generic
-        return ret;
+        return ret
 
     def isRegular(self) -> bool:
         return self.regular
 
     def isGeneric(self) -> bool:
         return self.generic
-    
-    def getDimensionality(self)-> int:
+
+    def getDimensionality(self) -> int:
         return self.dimensionality
 
-    def getCoverage(self)-> float:
+    def getCoverage(self) -> float:
         return self.coverage
-    
+
     def size(self):
         if self._shape:
             self.product(self._shape)
@@ -131,13 +131,17 @@ class DimensionImpl():
         for l in self._shape:
             ret *= l
         return ret
-
-    def shape(self) -> list:
+    
+    @property
+    def shape(self):
         if not self._shape:
             return [UNDEFINED]*self.dimensionality
         return self._shape
     
-
+    @shape.setter
+    def shape(self, shape):
+        self._shape = shape
+    
     # @Override
     # public String encode(Encoding... options) {
     #     return encodeDimension(this);
@@ -184,15 +188,8 @@ class DimensionImpl():
 
     def getParameters(self) -> dict:
         return self.parameters
-    
 
-    # public long[] get_shape() {
-    #     return _shape;
-    # }
 
-    # public void set_shape(long[] _shape) {
-    #     this._shape = _shape;
-    # }
 
     # public void setType(Type type) {
     #     this.type = type;
@@ -253,8 +250,6 @@ class DimensionImpl():
     #             || (this.type == Type.TIME && "GRID".equals(parameters.get(PARAMETER_TIME_REPRESENTATION)));
     # }
 
-	
-
 
 class KlabGeometry():
     def __init__(self) -> None:
@@ -263,46 +258,46 @@ class KlabGeometry():
         self.dimensions = []
         self.child = None
 
-    def isEmpty(self)->bool:
-        return not self.scalar and len(self.dimensions)==0 and self.child == None
-	
-    def isScalar(self)->bool:
+    def isEmpty(self) -> bool:
+        return not self.scalar and len(self.dimensions) == 0 and self.child == None
+
+    def isScalar(self) -> bool:
         return self._scalar
 
     @staticmethod
-    def create(geometrySpec:str):
+    def create(geometrySpec: str):
         return KlabGeometry.makeGeometry(geometrySpec, 0)
 
     @staticmethod
     def empty():
         return KlabGeometry()
-    
+
     @staticmethod
     def scalar():
         ret = KlabGeometry()
         ret._scalar = True
         return ret
-    
+
     def newDimension(self) -> DimensionImpl:
         return DimensionImpl()
-    
-    def addDimension(self, dim:DimensionImpl):
+
+    def addDimension(self, dim: DimensionImpl):
         self.dimensions.append(dim)
-	
+
     @staticmethod
-    def makeGeometry(geometry:str, i:int):
+    def makeGeometry(geometry: str, i: int):
         """
         read the geometry defined starting at the i-th character
         """
 
-        ret = KlabGeometry();
+        ret = KlabGeometry()
 
         if geometry == None or geometry == "X":
             return KlabGeometry.empty()
 
         if geometry == "*":
-            return KlabGeometry._scalar();
-        
+            return KlabGeometry._scalar()
+
         idx = i
         while idx < len(geometry):
             c = geometry[idx]
@@ -311,84 +306,87 @@ class KlabGeometry():
             elif (c >= 'A' and c <= 'z') or c == '\u03C3' or c == '\u03C4' or c == '\u03A3' or c == '\u03A4':
                 dimensionality = ret.newDimension()
                 if c == 'S' or c == 's' or c == '\u03C3' or c == '\u03A3':
-                    dimensionality.type = Type.SPACE
+                    dimensionality.type = DimensionType.SPACE
                     if c == '\u03C3' or c == '\u03A3':
                         dimensionality.generic = True
                     dimensionality.regular = c == 'S' or c == '\u03A3'
 
                 elif c == 'T' or c == 't' or c == '\u03C4' or c == '\u03A4':
-                    dimensionality.type = Type.TIME
+                    dimensionality.type = DimensionType.TIME
                     if c == '\u03C4' or c == '\u03A4':
                         dimensionality.generic = True
                     dimensionality.regular = c == 'T' or c == '\u03A4'
 
                 else:
-                    raise KlabIllegalArgumentException(f"unrecognized geometry dimension identifier {c}");
+                    raise KlabIllegalArgumentException(
+                        f"unrecognized geometry dimension identifier {c}")
 
                 idx += 1
                 if geometry[idx] == '.':
                     dimensionality.dimensionality = NONDIMENSIONAL
                 else:
-                    dimensionality.dimensionality = int(geometry[idx]);
-                
+                    dimensionality.dimensionality = int(geometry[idx])
 
                 if len(geometry) > (idx + 1) and geometry[idx + 1] == '(':
-                    idx += 2;
+                    idx += 2
                     shape = ""
                     while geometry[idx] != ')':
                         shape += geometry[idx]
-                        idx+=1
-                    
+                        idx += 1
+
                     dims = shape.strip().split(",")
                     sdimss = []
                     for d in range(0, len(dims)):
                         dimspec = dims[d].strip()
                         dsize = NONDIMENSIONAL
-                        if len(dimspec)>0:
+                        if len(dimspec) > 0:
                             if dimspec == "\u221E":
-                                dsize =  INFINITE_SIZE 
-                            else: 
+                                dsize = INFINITE_SIZE
+                            else:
                                 dsize = int(dimspec)
-                        
+
                         sdimss.append(dsize)
-                    
+
                     dimensionality.dimensionality = len(sdimss)
                     dimensionality.shape = sdimss
-                
+
                 if len(geometry) > (idx + 1) and geometry[idx + 1] == '{':
                     idx += 2
                     shape = ""
                     while geometry[idx] != '}':
                         shape += geometry[idx]
-                        idx+=1
-                    
-                    if len(shape)>0:
-                        dimensionality.parameters.update(KlabGeometry.readParameters(shape))
+                        idx += 1
+
+                    if len(shape) > 0:
+                        dimensionality.parameters.update(
+                            KlabGeometry.readParameters(shape))
 
                 ret.dimensions.append(dimensionality)
                 idx += 1
 
             elif c == ',':
                 ret.child = KlabGeometry.makeGeometry(geometry, idx + 1)
-                break;
-            
+                break
+
         return ret
-        
+
     @staticmethod
-    def readParameters(kvs:str) -> dict:
+    def readParameters(kvs: str) -> dict:
         ret = {}
         kvpList = kvs.strip().split(",")
         for kvp in kvpList:
             kk = kvp.strip().split("=")
             if len(kk) != 2:
-                raise KlabIllegalArgumentException(f"wrong key/value pair in geometry definition: {kvp}")
-            
+                raise KlabIllegalArgumentException(
+                    f"wrong key/value pair in geometry definition: {kvp}")
+
             key = kk[0].strip()
             val = kk[1].strip()
-            val = KlabGeometry.decodeForSerialization(val);
+            val = KlabGeometry.decodeForSerialization(val)
             v = None
             if val.startswith("[") and val.endswith("]"):
-                v = NumberUtils.podArrayFromString(val, r"\s+", None) #getParameterPODType(key));
+                # getParameterPODType(key));
+                v = NumberUtils.podArrayFromString(val, r"\s+", None)
             elif PARAMETER_SPACE_SHAPE != key and NumberUtils.encodesInt(val):
                 v = int(val)
             elif PARAMETER_SPACE_SHAPE != key and NumberUtils.encodesFloat(val):
@@ -401,18 +399,18 @@ class KlabGeometry():
         return ret
 
     @staticmethod
-    def decodeForSerialization(val:str):
+    def decodeForSerialization(val: str):
         return val.replace("&comma;", ",").replace("&eq;", "=")
-    
+
     @staticmethod
-    def encodeForSerialization(val:str):
+    def encodeForSerialization(val: str):
         return val.replace(",", "&comma;").replace("=", "&eq;")
 
     def encode(self) -> str:
         """
         Encode into a string representation. Keys in parameter maps are sorted so the
-	    results can be compared for equality.
-	    """
+            results can be compared for equality.
+            """
 
         if self.isEmpty():
             return "X"
@@ -429,78 +427,80 @@ class KlabGeometry():
 
         for dim in dims:
             ret += self.encodeDimension(dim)
-        
+
         if self.child:
             ret += "," + self.child.encode()
-        
+
         return ret
-    
+
     @staticmethod
-    def encodeDimension(dim:DimensionImpl) -> str:
+    def encodeDimension(dim: DimensionImpl) -> str:
         ret = ""
 
-        if dim.getType() == Type.SPACE:
+        if dim.getType() == DimensionType.SPACE:
             if dim.isGeneric():
                 if dim.isRegular():
                     ret += "\u03a3"
-                else: 
+                else:
                     ret += "\u03c3"
-            else: 
+            else:
                 if dim.isRegular():
                     ret += "S"
-                else: 
+                else:
                     ret += "s"
-        elif dim.getType() == Type.TIME:
+        elif dim.getType() == DimensionType.TIME:
             if dim.isGeneric():
                 if dim.isRegular():
                     ret += "\u03a4"
-                else: 
+                else:
                     ret += "\u03c4"
-            else: 
+            else:
                 if dim.isRegular():
                     ret += "T"
-                else: 
+                else:
                     ret += "t"
         else:
             raise NotImplementedError()
 
         ret += str(dim.getDimensionality())
-        
-        if dim.shape and not KlabGeometry.isUndefined(dim.shape):
+
+        sh = dim.shape
+        if sh and not KlabGeometry.isUndefined(sh):
             ret += "("
-            for i in range(0, len(dim.shape)):
+            for i in range(0, len(sh)):
                 sep = ","
                 if i == 0:
                     sep = ""
-                size = str(dim.shape[i])
-                if dim.shape[i] == INFINITE_SIZE:
+                size = str(sh[i])
+                if sh[i] == INFINITE_SIZE:
                     size = "\u221E"
                 ret += sep + size
 
             ret += ")"
-        
+
         if len(dim.getParameters()) > 0:
             ret += "{"
             first = True
 
-            keys =sorted( list(dim.getParameters().keys()))
-            
+            keys = sorted(list(dim.getParameters().keys()))
+
             for key in keys:
                 sep = ","
                 if first:
                     sep = ""
-                ret += sep + key + "=" + KlabGeometry.encodeVal(dim.getParameters().get(key))
+                ret += sep + key + "=" + \
+                    KlabGeometry.encodeVal(dim.getParameters().get(key))
                 first = False
-            
+
             ret += "}"
-        
+
         return ret
-    
+
     @staticmethod
-    def encodeVal(val:any):
+    def encodeVal(val: any):
         ret = ""
-        if  isinstance(val, list):
-            ret = "[";
+        if isinstance(val, list):
+            ret = "["
             for v in val:
                 sp = " "
                 if len(ret) == 1:
@@ -509,9 +509,8 @@ class KlabGeometry():
             ret += "]"
         else:
             ret = str(val)
-        
+
         return ret
-    
 
     @staticmethod
     def isUndefined(shape) -> bool:
@@ -519,204 +518,180 @@ class KlabGeometry():
             if l < 0:
                 return True
         return False
-	
 
-
-    
 
 class KlabSpace():
 
     @staticmethod
-    def isWKT(urn:str):
+    def isWKT(urn: str):
         return ("POLYGON" in urn or "POINT" in urn or "LINESTRING" in urn) and "(" in urn and ")" in urn
 
 
 class SpaceBuilder():
-    def __init__(self, space:DimensionImpl) -> None:
+    def __init__(self, space: DimensionImpl) -> None:
         self.space = space
 
     def generic(self):
         self.space.generic = True
         return self
-    
+
     def regular(self):
         self.space.regular = True
         return self
-    
-    def size(self, x:int, y:int):
-        self.space.shape = [x,y]
+
+    def size(self, x: int, y: int):
+        self.space.shape = [x, y]
         self.space.regular = True
         return self
 
-    def sizeN(self, n:int):
+    def sizeN(self, n: int):
         self.space.shape = [n]
         self.space.regular = False
         return self
 
-    def boundingBox(self, x1:float, x2:float,  y1:float,  y2:float):
+    def boundingBox(self, x1: float, x2: float,  y1: float,  y2: float):
         self.space.parameters[PARAMETER_SPACE_BOUNDINGBOX] = [x1, x2, y1, y2]
         return self
 
-    def shape(self, wktb:str):
-        self.space.parameters[PARAMETER_SPACE_SHAPE] = KlabGeometry.encodeForSerialization(wktb)
+    def shape(self, wktb: str):
+        self.space.parameters[PARAMETER_SPACE_SHAPE] = KlabGeometry.encodeForSerialization(
+            wktb)
         return self
 
-    def urn(self, urn:str):
-        self.space.parameters[PARAMETER_SPACE_RESOURCE_URN] = KlabGeometry.encodeForSerialization(urn)
+    def urn(self, urn: str):
+        self.space.parameters[PARAMETER_SPACE_RESOURCE_URN] = KlabGeometry.encodeForSerialization(
+            urn)
         return self
 
-    def resolution(self, gridResolution:str):
+    def resolution(self, gridResolution: str):
         self.space.parameters[PARAMETER_SPACE_GRIDRESOLUTION] = gridResolution
         return self
 
     def build(self) -> DimensionImpl:
         return self.space
-    
+
+
 class TimeBuilder():
-    def __init__(self, time:DimensionImpl) -> None:
+    def __init__(self, time: DimensionImpl) -> None:
         self.time = time
-    
+
     def generic(self):
         self.time.generic = True
         return self
-    
+
     def regular(self):
         self.time.regular = True
         return self
-    
-    def covering(self, start:int, end:int):
+
+    def covering(self, start: int, end: int):
         self.time.parameters[PARAMETER_TIME_COVERAGE_START] = start
         self.time.parameters[PARAMETER_TIME_COVERAGE_END] = end
         return self
-    
-    def start(self, start:int):
+
+    def start(self, start: int):
         self.time.parameters[PARAMETER_TIME_START] = start
         return self
-    
-    def end(self, end:int):
+
+    def end(self, end: int):
         self.time.parameters[PARAMETER_TIME_END] = end
         return self
-    
-    def resolution(self, resolution:TimeResolutionType, multiplier:float):
+
+    def resolution(self, resolution: TimeResolutionType, multiplier: float):
         self.time.parameters[PARAMETER_TIME_SCOPE] = multiplier
-        self.time.parameters[PARAMETER_TIME_SCOPE_UNIT] = resolution.name.lower()
+        self.time.parameters[PARAMETER_TIME_SCOPE_UNIT] = resolution.name.lower(
+        )
         return self
 
-    def size(self, n:int):
+    def size(self, n: int):
         self.time.shape = [n]
         self.time.regular = False
         return self
 
     def build(self) -> DimensionImpl:
         return self.time
-    
+
 
 class GeometryBuilder():
     def __init__(self) -> None:
-        self.space = None
-        self.time = None
+        self._space = None
+        self._time = None
 
-    #     /**
-    #     * Create a spatial region from a resource URN (specifying a polygon). The
-    #     * string may also specify a WKT polygon using the k.LAB conventions (preceded
-    #     * by the EPSG: projection). The resulting
-    #     *
-    #     * @param urn
-    #     * @param resolution a string in the format "1 km"
-    #     * @return
-    #     */
-    def region(self, urn:str):
+    def region(self, urn: str):
+        """
+        Create a spatial region from a resource URN (specifying a polygon). The
+        string may also specify a WKT polygon using the k.LAB conventions (preceded
+        by the EPSG: projection). The resulting
+        """
         if KlabSpace.isWKT(urn):
-            return self.space().shape(urn).size(1).build()
-        return self.space().urn(urn).size(1).build()
-    
+            self.space().shape(urn).size(1).build()
+        else:
+            self.space().urn(urn).size(1).build()
+        return self
 
-    # /**
-    #     * Create a spatial polygon of multiplicity 1 from a lat/lon bounding box and a
-    #     * resolution. The box is "straight" with the X axis specifying
-    #     * <em>longitude</em>.
-    #     *
-    #     * @param resolution a string in the format "1 km"
-    #     * @return
-    #     */
-    # public GeometryBuilder grid(double x1, double x2, double y1, double y2) {
-    #     return space().regular().boundingBox(x1, x2, y1, y2).build();
-    # }
+    def grid(self, x1: float = None, x2: float = None, y1: float = None, y2: float = None, resolution: str = None, urn: str = None):
+        """
+        A grid can be created from:
 
-    # /**
-    #     * Create a spatial grid from a resource URN (specifying a polygon) and a
-    #     * resolution. The string may also specify a WKT polygon using the k.LAB
-    #     * conventions (preceded by the EPSG: projection).
-    #     *
-    #     * @param urn
-    #     * @param resolution a string in the format "1 km"
-    #     * @return
-    #     */
-    # public GeometryBuilder grid(String urn, String resolution) {
-    #     if (ISpace.isWKT(urn)) {
-    #         return space().regular().resolution(resolution).shape(urn).build();
-    #     }
-    #     return space().regular().resolution(resolution).urn(urn).build();
-    # }
+        1) Create a spatial polygon of multiplicity 1 from a lat/lon bounding box. 
+        The box is "straight" with the X axis specifying longitude.
 
-    # /**
-    #     * Create a spatial grid from a lat/lon bounding box and a resolution. The box
-    #     * is "straight" with the X axis specifying <em>longitude</em>.
-    #     *
-    #     * @param resolution a string in the format "1 km"
-    #     * @return
-    #     */
-    # public GeometryBuilder grid(double x1, double x2, double y1, double y2, String resolution) {
-    #     return space().regular().resolution(resolution).boundingBox(x1, x2, y1, y2).build();
-    # }
+        2) same as 1 but with a resolution object (a string in the format "1 km")
 
-    # /**
-    #     * Create a temporal extent in years. If one year is passed, build a single-year
-    #     * extent; otherwise build a yearly grid from the first year to the second.
-    #     * 
-    #     * @param years
-    #     * @return
-    #     */
-    # public GeometryBuilder years(int... years) {
-    #     if (years != null) {
-    #         if (years.length == 1) {
-    #             return time().start(startOfYear(years[0])).end(startOfYear(years[0] + 1)).size(1).build();
-    #         } else if (years.length == 2) {
-    #             return time().start(startOfYear(years[0])).end(startOfYear(years[1])).size((long) (years[1] - years[0]))
-    #                     .resolution(ITime.Resolution.Type.YEAR, 1).build();
-    #         }
-    #         // TODO irregular coverage?
-    #     }
-    #     throw new KlabIllegalArgumentException("wrong year parameters passed to TimeBuilder.years");
-    # }
+        3) Create a spatial grid from a resource URN (specifying a polygon) and a
+        resolution. The string may also specify a WKT polygon using the k.LAB
+        conventions (preceded by the EPSG: projection).
+        """
+        if x1 and x2 and y1 and y2:
+            if resolution:
+                self.space().regular().resolution(resolution).boundingBox(x1, x2, y1, y2).build()
+            else:
+                self.space().regular().boundingBox(x1, x2, y1, y2).build()
+        elif urn and resolution:
+            if KlabSpace.isWKT(urn):
+                self.space().regular().resolution(resolution).shape(urn).build()
+            else:
+                self.space().regular().resolution(resolution).urn(urn).build()
+        else:
+            raise KlabIllegalArgumentException(
+                "Not enough parameters were supplied to create a grid. Either bbox or urn+resolution are supported.")
+        
+        return self
 
-    # private long startOfYear(int i) {
-    #     ZonedDateTime date = LocalDateTime.of(i, 1, 1, 0, 0).atZone(ZoneOffset.UTC);
-    #     return date.toInstant().toEpochMilli();
-    # }
+    def years(self, *years: int):
+        if years:
+            if len(years) == 1:
+                self.time().start(self.startOfYear(years[0])).end(self.startOfYear(years[0] + 1)).size(1).build()
+            elif len(years) == 2:
+                self.time().start(self.startOfYear(years[0])).end(self.startOfYear(years[1])).size(years[1] - years[0]).resolution(TimeResolutionType.YEAR, 1).build()
+            else:
+                raise KlabIllegalArgumentException(
+                    "wrong year parameters passed to TimeBuilder.years")
+            
+            return self
 
+    def startOfYear(self, i: int):
+        utcStart = datetime.datetime.strptime(
+            f"{i}-01-01 00:00", "%Y-%m-%d %H:%M").replace(tzinfo=datetime.timezone.utc)
+        return utcStart.timestamp() * 1000
 
-    def space() -> SpaceBuilder:
-        space = DimensionImpl()
-        space.type  = DimensionType.SPACE
-        space.dimensionality = 2
-        return SpaceBuilder(space)
-    
+    def space(self) -> SpaceBuilder:
+        self._space = DimensionImpl()
+        self._space.type = DimensionType.SPACE
+        self._space.dimensionality = 2
+        return SpaceBuilder(self._space)
 
-    def time() -> TimeBuilder:
-        time = DimensionImpl()
-        time.type = DimensionType.TIME
-        time.dimensionality = 1
-        return TimeBuilder()
-    
+    def time(self) -> TimeBuilder:
+        self._time = DimensionImpl()
+        self._time.type = DimensionType.TIME
+        self._time.dimensionality = 1
+        return TimeBuilder(self._time)
 
     def build(self) -> KlabGeometry:
         ret = KlabGeometry()
-        if self.space:
-            ret.addDimension(self.space)
-        
-        if self.time:
-            ret.addDimension(self.time)
-        
+        if self._space:
+            ret.addDimension(self._space)
+
+        if self._time:
+            ret.addDimension(self._time)
+
         return ret
-    

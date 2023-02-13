@@ -2,7 +2,7 @@ import unittest
 from unittest import TestCase, IsolatedAsyncioTestCase
 
 from klab.klab import Klab
-from klab.geometry import KlabGeometry
+from klab.geometry import KlabGeometry, GeometryBuilder
 from klab.observable import Observable
 import klab
 import logging
@@ -55,6 +55,20 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         contextTask = await self.klab.submit(obs, geometry)
         context = await contextTask.get()
         self.assertIsNotNone(context)
+
+    def test_context_observation(self):
+        asyncio.run(self._test_context_observation())
+
+    async def _test_context_observation(self):
+        # pass a semantic type and a geometry
+
+        obs = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+
+        contextTask = await self.klab.submit(obs, grid)
+        context = await contextTask.get()
+        self.assertIsNotNone(context)
+
 
 
 if __name__ == "__main__":
