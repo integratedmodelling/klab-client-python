@@ -141,8 +141,7 @@ class ObservationImpl():
             raise KlabIllegalStateException(
                 "getDataRange called on a non-state or null observation")
 
-        return Range.create(self.reference.dataSummary.minValue,
-                            self.reference.dataSummary.maxValue)
+        return Range(lower=self.reference.dataSummary.minValue, upper=self.reference.dataSummary.maxValue)
 
     def getScalarValue(self):
         literalValue = self.reference.overallValue
@@ -259,9 +258,15 @@ class ContextRequest():
 
     def toJson(self):
         es = str(self._estimate).lower()
+
+        obs = [str(o) for o in self._observables]
+        obs = str(obs).replace("'", "\"")
+        scen = [str(s) for s in self._scenarios]
+        scen = str(scen).replace("'", "\"")
+
         ret = """{{"geometry":"{0}","contextType":"{1}","observables":{2},"scenarios":{3},"estimate":{4},"estimatedCost":{5}}}"""
         ret = ret.format(self._geometry, self._contextType,
-                         self._observables, self._scenarios, es, self._estimatedCost)
+                         obs, scen, es, self._estimatedCost)
 
         ret = ret.encode('utf-8').decode('unicode-escape')
         return ret

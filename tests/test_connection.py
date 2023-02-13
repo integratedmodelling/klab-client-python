@@ -3,7 +3,7 @@ from unittest import TestCase, IsolatedAsyncioTestCase
 
 from klab.klab import Klab
 from klab.geometry import KlabGeometry, GeometryBuilder
-from klab.observable import Observable
+from klab.observable import Observable, Range
 import klab
 import logging
 import asyncio
@@ -68,6 +68,31 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         contextTask = await self.klab.submit(obs, grid)
         context = await contextTask.get()
         self.assertIsNotNone(context)
+
+    def test_direct_observation(self):
+        asyncio.run(self._test_direct_observation())
+
+    async def _test_direct_observation(self):
+        # pass a semantic type and a geometry + a quality to observe. The quality will be available
+        # with the (obvious) name in the context
+        obs = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        obsElev = Observable.create("geography:Elevation")
+        contextTask = await self.klab.submit(obs, grid, obsElev)
+        context = await contextTask.get()
+
+        self.assertIsNotNone(context)
+
+        elevation = context.getObservation("elevation")
+        self.assertIsNotNone(elevation)
+        
+        dataRange = elevation.getDataRange()
+        r1 = Range(0, 3000)
+        r2 = Range(500, 2500)
+
+        self.assertTrue(r1.contains(dataRange))
+        self.assertTrue(dataRange.contains(r2))
+
 
 
 

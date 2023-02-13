@@ -3,7 +3,7 @@ from .utils import NumberUtils
 
 class Range():
 
-    def __init_(self, lower:float, upper:float, lowerExclusive:bool, upperExclusive:bool):
+    def __init__(self, lower:float = None, upper:float = None, lowerExclusive:bool = None, upperExclusive:bool = None):
         self.lowerBound = NumberUtils.NEGATIVE_INFINITY
         if lower:
             self.lowerBound = lower
@@ -24,6 +24,46 @@ class Range():
     
     def getUpperBound(self):
         return self.upperBound
+    
+    def __eq__(self, other: object) -> bool:
+        if id(self) == id(other):
+            return True
+        if other == None:
+            return False
+        if not isinstance(other, Range):
+            return False
+        if self.lowerInfinite != other.lowerInfinite:
+            return False
+        if self.lowerBound != other.lowerBound:
+            return False
+        if self.lowerExclusive != other.lowerExclusive:
+            return False
+        if self.upperInfinite != other.upperInfinite:
+            return False
+        if self.upperBound != other.upperBound:
+            return False
+        if self.upperExclusive != other.upperExclusive:
+            return False
+        return True
+    
+    def contains(self, other) -> bool:
+        if self == other:
+            return True
+        
+        if not self.lowerInfinite and not other.lowerInfinite and (self.lowerBound >= other.lowerBound if self.lowerExclusive else self.lowerBound > other.lowerBound):
+            return False
+        
+        if not self.upperInfinite and not other.upperInfinite and (self.upperBound <= other.upperBound if self.upperExclusive else self.upperBound < other.upperBound):
+            return False
+        
+        if not self.upperInfinite and other.upperInfinite:
+            return False
+        
+        if not self.lowerInfinite and other.lowerInfinite:
+            return False
+        
+        return True
+    
 
 
 class Observable():

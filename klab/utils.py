@@ -75,6 +75,7 @@ class ExportFormat(Enum):
             ef = ExportFormat.fromValue(v)
             if ef:
                 efl.append(ef)
+            
         return efl
         
     

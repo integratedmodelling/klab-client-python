@@ -28,6 +28,8 @@ class ActionReference():
 
     @staticmethod
     def fromDict(dataMap:dict):
+        if not dataMap:
+            return None
         ar = ActionReference()
         ar._actionLabel = dataMap.get('actionLabel')
         ar._actionId = dataMap.get('actionId')
@@ -87,6 +89,8 @@ class ScaleReference():
 
     @staticmethod
     def fromDict(dataMap:dict):
+        if not dataMap:
+            return None
         sr = ScaleReference()
         sr._name = dataMap.get('name')
         sr._east = dataMap.get('east')
@@ -124,6 +128,66 @@ class ScaleReference():
         return f"ScaleReference [east={self.east}, west={self.west}, north={self.north}, south={self.south}, spaceScale={self.spaceScale}, resolutionDescription={self.spaceResolutionDescription}]"
 
 
+class ObservationExportFormat():
+    def __init__(self, label:str = None, value:str = None, adapter:str = None, extension:str = None) -> None:
+        self._label = label
+        self._value = value
+        self._adapter = adapter
+        self._extension = extension
+
+    @staticmethod
+    def fromDict(dataMap:dict):
+        if not dataMap:
+            return None
+        oef = ObservationExportFormat()
+        oef._label = dataMap.get('label')
+        oef._value = dataMap.get('value')
+        oef._adapter = dataMap.get('adapter')
+        oef._extension = dataMap.get('extension')
+        return oef
+    
+    @staticmethod
+    def fromList(dataList:list):
+        if not dataList:
+            return None
+        oefList = [ObservationExportFormat.fromDict(oef) for oef in dataList]
+        return oefList
+    
+    @property
+    def label(self):
+        return self._label
+    
+    @label.setter
+    def label(self, label):
+        self._label = label
+    
+    @property
+    def value(self):
+        return self._value
+    
+    @value.setter
+    def value(self, value):
+        self._value = value
+    
+    @property
+    def adapter(self):
+        return self._adapter
+    
+    @adapter.setter
+    def adapter(self, adapter):
+        self._adapter = adapter
+    
+    @property
+    def extension(self):
+        return self._extension
+    
+    @extension.setter
+    def extension(self, extension):
+        self._extension = extension
+
+        
+
+
 class DataSummary():
 
     def __init__(self) -> None:
@@ -137,6 +201,8 @@ class DataSummary():
 
     @staticmethod
     def fromDict(dataMap:dict):
+        if not dataMap:
+            return None
         ds = DataSummary()
         ds._nodataProportion = dataMap.get('nodataProportion')
         ds._minValue = dataMap.get('minValue')
@@ -258,6 +324,8 @@ class ObservationReference():
 
     @staticmethod
     def fromDict(dataMap: dict):
+        if not dataMap:
+            return None
         obr = ObservationReference()
         obr._shapeType = ShapeType.fromValue(
             dataMap.get('shapeType'))  # ShapeType.EMPTY
@@ -281,8 +349,8 @@ class ObservationReference():
         obr._empty = dataMap.get('empty')  # False
         obr._style = dataMap.get('style')  # None
         obr._primary = dataMap.get('primary')  # False
-        obr._dataSummary = dataMap.get('dataSummary')  # None
-        obr._exportFormats = ExportFormat.fromMediaTypeList(dataMap.get('exportFormats'))  # []
+        obr._dataSummary = DataSummary.fromDict(dataMap.get('dataSummary'))  # None
+        obr._exportFormats = ObservationExportFormat.fromList(dataMap.get('exportFormats'))  # []
         obr._originalGroupId = dataMap.get('originalGroupId')  # None
         obr._alive = dataMap.get('alive')  # False
         obr._main = dataMap.get('main')  # False

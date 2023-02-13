@@ -73,7 +73,7 @@ class Klab:
             return self.engine.deauthenticate();
         return True
         
-    async def submit(self, contextType:Observable,  geometry:KlabGeometry, arguments:list = [] ) -> TicketHandler:
+    async def submit(self, contextType:Observable,  geometry:KlabGeometry, *arguments:list ) -> TicketHandler:
         """
         Call with a concept and geometry to create the context observation (accepting all costs) and
         optionally further observations as semantic types or options.
