@@ -93,8 +93,34 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         self.assertTrue(r1.contains(dataRange))
         self.assertTrue(dataRange.contains(r2))
 
+    def test_aggregated_results(self):
+        asyncio.run(self._test_aggregated_results())
 
+    async def _test_aggregated_results(self):
+        obs = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        obsElev = Observable.create("geography:Elevation")
+        contextTask = await self.klab.submit(obs, grid, obsElev)
+        context = await contextTask.get()
 
+        self.assertIsNotNone(context)
+
+        elevation = context.getObservation("elevation")
+        self.assertIsNotNone(elevation)
+
+        dataRange = elevation.getDataRange()
+        r1 = Range(0, 3000)
+        r2 = Range(500, 2500)
+
+        self.assertTrue(r1.contains(dataRange))
+        self.assertTrue(dataRange.contains(r2))
+
+        aggregated = elevation.getAggregatedValue()
+        scalar = elevation.getScalarValue()
+
+        self.assertTrue(isinstance(aggregated, float))
+        self.assertTrue(aggregated > 0)
+        self.assertIsNone(scalar)
 
 if __name__ == "__main__":
     unittest.main()
