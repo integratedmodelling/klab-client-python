@@ -1,10 +1,11 @@
 import requests
 from .exceptions import *
-from .utils import EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC,P_EXPORT,P_OBSERVATION,P_TICKET
-from .observation import ObservationReference, Export, ExportFormat, ObservationRequest, Context, Observation, ContextRequest
+from .utils import Export, ExportFormat, EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC,P_EXPORT,P_OBSERVATION,P_TICKET, P_CONTEXT
+from .observation import ObservationReference,  ObservationRequest, Context, Observation, ContextRequest
 from .ticket import Ticket, TicketResponse, TicketStatus, TicketType, Estimate
 import asyncio
-
+import io
+import json
 import logging
 
 LOGGER = logging.getLogger(__name__)
@@ -151,8 +152,24 @@ class Engine:
             return None
         return ObservationReference.fromDict(ret)
 
-    def streamExport(self, observationId: str, target: Export,  format: ExportFormat, output, parameters: list) -> bool:
-        pass
+    def streamExport(self, observationId: str, target: Export,  format: ExportFormat, output: io.BytesIO, parameters: list) -> bool:
+        endpoint = EndPoint.EXPORT_DATA.value.replace(P_EXPORT, target.name.lower()).replace(P_OBSERVATION, observationId)
+
+        self.accept(format.getMediaType())
+
+        ret = self.get(endpoint)
+        if ret:
+            if isinstance(ret, dict):
+                retType = ret.get('type')
+                if retType == "FeatureCollection":
+                    features = ret.get('features')
+                    featuresJson = json.dumps(features)
+                    res = bytes(featuresJson, 'utf-8')
+                    output.write(res)
+                    
+        else:
+            return True
+
         # String url = makeUrl(
         #         EXPORT_DATA.replace(P_EXPORT, target.name().toLowerCase()).replace(P_OBSERVATION, observationId),
         #         parameters);
@@ -176,10 +193,17 @@ class Engine:
 
         # return false;
 
-    def submitObservation(self, request: ObservationRequest) -> str:
+    def submitObservation(self, request: ObservationRequest) -> Ticket:
         """Submit context request, return ticket number or null in case of error"""
-        pass
-        # 	TicketResponse.Ticket response = post(OBSERVE_IN_CONTEXT.replace(P_CONTEXT, request.getContextId()), request,
+        endpoint = EndPoint.OBSERVE_IN_CONTEXT.value.replace(P_CONTEXT, request.contextId)
+
+        response = self.post(endpoint, request)
+        if response:
+            return Ticket.fromDict(response)
+        
+        return None
+
+        # 	TicketResponse.Ticket response = post(), request,
         # 			TicketResponse.Ticket.class);
         # 	if (response != null && response.getId() != null) {
         # 		return response.getId();

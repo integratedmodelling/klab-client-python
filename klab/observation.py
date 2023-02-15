@@ -2,7 +2,7 @@ from enum import Enum
 from .utils import NumberUtils, Export, ExportFormat
 from .observable import Observable, Range
 from .exceptions import *
-# from .engine import TicketHandler, Engine
+import io
 import klab.engine as E
 from .ticket import Estimate, Ticket
 from .types import ObservationType, ValueType
@@ -12,7 +12,7 @@ from .references import ObservationReference
 class ObservationExportFormat():
     """Export formats for each observation."""
 
-    def __init_(self, label: str = None, value: str = None, adapter: str = None, extension: str = None):
+    def __init__(self, label: str = None, value: str = None, adapter: str = None, extension: str = None):
         self._label = label
         self._value = value
         self._adapter = adapter
@@ -92,24 +92,18 @@ class Observation():
     #     return ret;
     # }
 
-    # @Override
-    # public String export(Export target, ExportFormat format) {
-    #     if (!format.isText()) {
-    #         throw new KlabIllegalArgumentException(
-    #                 "illegal export format " + format + " for string export of " + target);
-    #     }
-    #     try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-    #         boolean ok = export(target, format, output);
-    #         if (ok) {
-    #             return new String(output.toByteArray(), StandardCharsets.UTF_8);
-    #         }
-    #     } catch (IOException e) {
-    #         // just return null
-    #     }
-    #     return null;
-    # }
+    def exportToString(self, target: Export, format: ExportFormat) -> str:
+        if not format.isText():
+            raise KlabIllegalArgumentException(f"illegal export format {format} for string export of {target.name}")
+        
+        stream = io.BytesIO()
+        self.export(target, format, stream)
 
-    def export(self, target: Export,  format: ExportFormat,  output,  parameters: list) -> bool:
+        bytesBuffer = stream.getvalue()
+        return bytesBuffer.decode("utf-8")
+
+
+    def export(self, target: Export,  format: ExportFormat,  output:io.BytesIO,  parameters: list = []) -> bool:
         if not format.isExportAllowed(target):
             raise KlabIllegalArgumentException(
                 "export format is incompatible with target")
@@ -176,6 +170,25 @@ class ObservationRequest():
         self._scenarios = []
         self._states = {}
         self._objects = {}
+
+    def toJson(self):
+        es = str(self._estimate).lower()
+
+        scen = [str(s) for s in self._scenarios]
+        scen = str(scen).replace("'", "\"")
+
+        st = str(self._states).replace("'", "\"")
+        ob = str(self._objects).replace("'", "\"")
+
+        scId = ""
+        if self.searchContextId:
+            scId = """"contextSearchId":"{0}", """.format(self.searchContextId)
+
+        ret = """{{"urn":"{0}","contextId":"{1}",{2}"estimate":{3},"estimatedCost":{4},"scenarios":{5},"states":{6},"objects":{7}}}"""
+        ret = ret.format(self._urn, self._contextId, scId, es, self._estimatedCost, scen, st, ob)
+
+        ret = ret.encode('utf-8').decode('unicode-escape')
+        return ret
 
     @property
     def urn(self) -> str:
@@ -341,7 +354,7 @@ class Context(Observation):
         self.injectedStates = []  # supposed to be (Observable, Object)
         self.injectedObjects = []  # supposed to be (Observable, IGeometry)
 
-    async def estimate(self, observable: Observable, arguments: list) -> Estimate:
+    async def estimate(self, observable: Observable, arguments: list = []) -> Estimate:
         request = ObservationRequest()
         request.contextId = self.reference.id
         request.estimate = False
@@ -364,12 +377,12 @@ class Context(Observation):
 
         ticket = self.engine.submitObservation(request)
         if ticket:
-            return E.TicketHandler < Estimate > (self.engine, ticket, self)
+            return E.TicketHandler(self.engine, ticket.id, self)
 
         raise KlabIllegalArgumentException(
             f"Cannot build estimate request from arguments: {arguments}")
 
-    async def submit(self, observable: Observable, arguments: list) -> Observation:
+    async def submit(self, observable: Observable, arguments: list = []) -> Observation:
 
         request = ObservationRequest()
         request.contextId = self.reference.id
@@ -393,7 +406,7 @@ class Context(Observation):
 
         ticket = self.engine.submitObservation(request)
         if ticket:
-            return E.TicketHandler < Estimate > (self.engine, ticket, self)
+            return E.TicketHandler(self.engine, ticket.id, self)
 
         raise KlabIllegalArgumentException(
             f"Cannot build observation request from arguments: {arguments}")

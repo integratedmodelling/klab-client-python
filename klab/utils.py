@@ -58,6 +58,9 @@ class ExportFormat(Enum):
     def isExportAllowed( self, export:Export ) -> bool:
         allowedList = self.value[1]
         return export in allowedList
+    
+    def __str__(self) -> str:
+        return f"{self.value[0]}"
 
     @staticmethod
     def fromMediaType(value:str):

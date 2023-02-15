@@ -4,6 +4,8 @@ from unittest import TestCase, IsolatedAsyncioTestCase
 from klab.klab import Klab
 from klab.geometry import KlabGeometry, GeometryBuilder
 from klab.observable import Observable, Range
+from klab.observation import Observation
+from klab.utils import Export, ExportFormat
 import klab
 import logging
 import asyncio
@@ -137,6 +139,22 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         landcover = context.getObservation("landcover")
         self.assertIsNotNone(landcover)
 
+    def test_spatial_objects(self):
+        asyncio.run(self._test_spatial_objects())
+
+    async def _test_spatial_objects(self):
+        obs = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        contextTask = await self.klab.submit(obs, grid)
+        context = await contextTask.get()
+        self.assertIsNotNone(context)
+
+        newContext = await context.submit(Observable.create("infrastructure:Town"))
+        towns = await newContext.get()
+        self.assertTrue(isinstance(towns, Observation))
+
+        geojson = towns.exportToString(Export.DATA, ExportFormat.GEOJSON_FEATURES)
+        self.assertIsNotNone(geojson)
 
 if __name__ == "__main__":
     unittest.main()
