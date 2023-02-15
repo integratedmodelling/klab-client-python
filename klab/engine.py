@@ -1,6 +1,6 @@
 import requests
 from .exceptions import *
-from .utils import Export, ExportFormat, EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC,P_EXPORT,P_OBSERVATION,P_TICKET, P_CONTEXT
+from .utils import Export, ExportFormat, EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC,P_EXPORT,P_OBSERVATION,P_TICKET, P_CONTEXT,P_ESTIMATE
 from .observation import ObservationReference,  ObservationRequest, Context, Observation, ContextRequest
 from .ticket import Ticket, TicketResponse, TicketStatus, TicketType, Estimate
 import asyncio
@@ -91,8 +91,13 @@ class Engine:
         except Exception as err:
             raise err
         else:
-            jsonResponse = response.json()
-            return jsonResponse
+            if mediaType == 'application/json':
+                jsonResponse = response.json()
+                return jsonResponse
+            elif response.text:
+                return response.text
+            else:
+                response.content
 
 
     def post(self, endpoint:str, request:any, pathVariables:list = None):
@@ -142,6 +147,20 @@ class Engine:
 
         return f"{self.url}{endpoint}{parms}"
 
+    def addParams(self, endpoint, parameters=[]):
+        parms = ""
+        if parameters:
+            for i in range(0, len(parameters)):
+                if parms == "":
+                    parms += "?"
+                else:
+                    parms += "&"
+                parms += str(parameters[i])
+                i += 1
+                parms += "=" + str(parameters[i])
+
+        return f"{endpoint}{parms}"
+
     def getUserAgent(self):
         return "k.LAB/" + KLAB_VERSION + " (" + USER_AGENT_PLATFORM + ")"
 
@@ -152,46 +171,35 @@ class Engine:
             return None
         return ObservationReference.fromDict(ret)
 
-    def streamExport(self, observationId: str, target: Export,  format: ExportFormat, output: io.BytesIO, parameters: list) -> bool:
+    def streamExport(self, observationId: str, target: Export,  format: ExportFormat, output: io.BytesIO, parameters: list = []) -> bool:
         endpoint = EndPoint.EXPORT_DATA.value.replace(P_EXPORT, target.name.lower()).replace(P_OBSERVATION, observationId)
+        self.addParams(endpoint, parameters)
 
         self.accept(format.getMediaType())
 
         ret = self.get(endpoint)
         if ret:
-            if isinstance(ret, dict):
+            if format == ExportFormat.GEOJSON_FEATURES or format == ExportFormat.JSON_CODE:
                 retType = ret.get('type')
                 if retType == "FeatureCollection":
                     features = ret.get('features')
                     featuresJson = json.dumps(features)
                     res = bytes(featuresJson, 'utf-8')
                     output.write(res)
+                else:
+                    js = json.dumps(ret)
+                    res = bytes(js, 'utf-8')
+                    output.write(res)
+            elif format == ExportFormat.GEOTIFF_RASTER:
+                output.write(ret) # TODO check this
+            elif format == ExportFormat.KDL_CODE:
+                res = bytes(ret, 'utf-8')
+                output.write(res) # TODO check this
                     
-        else:
             return True
+        else:
+            return False
 
-        # String url = makeUrl(
-        #         EXPORT_DATA.replace(P_EXPORT, target.name().toLowerCase()).replace(P_OBSERVATION, observationId),
-        #         parameters);
-        # try {
-
-        #     Unirest.get(url).accept(format.getMediaType()).header("Authorization", token)
-        #             .header("User-Agent", getUserAgent()).thenConsume(response -> {
-        #                 try {
-        #                     response.getContent().transferTo(output);
-        #                 } catch (IOException e) {
-        #                     // uncheck
-        #                     throw new KlabIOException(e);
-        #                 }
-        #             });
-
-        #     return true;
-
-        # } catch (Throwable t) {
-        #     // just return false
-        # }
-
-        # return false;
 
     def submitObservation(self, request: ObservationRequest) -> Ticket:
         """Submit context request, return ticket number or null in case of error"""
@@ -203,13 +211,6 @@ class Engine:
         
         return None
 
-        # 	TicketResponse.Ticket response = post(), request,
-        # 			TicketResponse.Ticket.class);
-        # 	if (response != null && response.getId() != null) {
-        # 		return response.getId();
-        # 	}
-        # 	return null;
-        # }
 
 
     def submitContext(self, request:ContextRequest) -> Ticket:
@@ -220,6 +221,13 @@ class Engine:
             return Ticket.fromDict(response)
         
         return None
+	
+
+    def submitEstimate(self, estimateId: str) -> Ticket:
+        endpoint = EndPoint.SUBMIT_ESTIMATE.value.replace(P_ESTIMATE, estimateId)
+        response = self.get(endpoint)
+        if response:
+            return Ticket.fromDict(response)
 	
 
     def getTicket(self, ticketId: str) -> Ticket:

@@ -79,18 +79,13 @@ class Observation():
                 self.getObservation(name)
                 break
 
-    # @Override
-    # public boolean export(Export target, ExportFormat format, File file, Object... parameters) {
-    #     boolean ret = false;
-    #     try (OutputStream stream = new FileOutputStream(file)) {
-    #         ret = export(target, format, stream, parameters);
-    #     } catch (FileNotFoundException e) {
-    #         throw new KlabIllegalStateException(e.getMessage());
-    #     } catch (IOException e) {
-    #         throw new KlabIOException(e.getMessage());
-    #     }
-    #     return ret;
-    # }
+    def exportToFile(self, target:Export,  format: ExportFormat,  path:str, parameters:list = []) -> bool:
+        stream = io.BytesIO()
+        self.export(target, format, stream)
+        with open(path, 'wb') as file:
+            file.write(stream.getbuffer())
+        
+        return True 
 
     def exportToString(self, target: Export, format: ExportFormat) -> str:
         if not format.isText():
@@ -354,7 +349,7 @@ class Context(Observation):
         self.injectedStates = []  # supposed to be (Observable, Object)
         self.injectedObjects = []  # supposed to be (Observable, IGeometry)
 
-    async def estimate(self, observable: Observable, arguments: list = []) -> Estimate:
+    def estimate(self, observable: Observable, arguments: list = []):
         request = ObservationRequest()
         request.contextId = self.reference.id
         request.estimate = False
@@ -382,7 +377,7 @@ class Context(Observation):
         raise KlabIllegalArgumentException(
             f"Cannot build estimate request from arguments: {arguments}")
 
-    async def submit(self, observable: Observable, arguments: list = []) -> Observation:
+    def submit(self, observable: Observable, arguments: list = []):
 
         request = ObservationRequest()
         request.contextId = self.reference.id
@@ -411,6 +406,8 @@ class Context(Observation):
         raise KlabIllegalArgumentException(
             f"Cannot build observation request from arguments: {arguments}")
 
+    
+
     # @Override
     # public Future<Observation> submit(Estimate estimate) {
 
@@ -427,42 +424,28 @@ class Context(Observation):
 
     # }
 
-    # @Override
-    # public String getDataflow(ExportFormat format) {
+    def getDataflow(self, format:ExportFormat) -> str:
+        if format != ExportFormat.ELK_GRAPH_JSON and format != ExportFormat.KDL_CODE:
+            raise KlabIllegalArgumentException(f"cannot export a dataflow to {format.name}")
+        
+        stream = io.BytesIO()
+        self.engine.streamExport(self.reference.id, Export.DATAFLOW, format, stream)
+        bytesBuffer = stream.getvalue()
+        return bytesBuffer.decode("utf-8")
+    
+    def getProvenance(self, simplified:bool, format:ExportFormat) -> str:
+        if format != ExportFormat.ELK_GRAPH_JSON and format != ExportFormat.KIM_CODE:
+            raise KlabIllegalArgumentException(f"cannot export the provenance graph to {format.name}")
+        
+        exp = Export.PROVENANCE_FULL
+        if simplified:
+            exp = Export.PROVENANCE_SIMPLIFIED
 
-    #     if (format != ExportFormat.ELK_GRAPH_JSON && format != ExportFormat.KDL_CODE) {
-    #         throw new KlabIllegalArgumentException("cannot export a dataflow to " + format);
-    #     }
+        stream = io.BytesIO()
+        self.engine.streamExport(self.reference.id, exp, format, stream)
+        bytesBuffer = stream.getvalue()
+        return bytesBuffer.decode("utf-8")
 
-    #     try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-    #         if (engine.streamExport(reference.getId(), Export.DATAFLOW, format, output)) {
-    #             return output.toString();
-    #         }
-    #     } catch (IOException e) {
-    #         throw new KlabIOException(e);
-    #     }
-
-    #     return null;
-    # }
-
-    # @Override
-    # public String getProvenance(boolean simplified, ExportFormat format) {
-
-    #     if (format != ExportFormat.ELK_GRAPH_JSON && format != ExportFormat.KIM_CODE) {
-    #         throw new KlabIllegalArgumentException("cannot export the provenance graph to " + format);
-    #     }
-
-    #     try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-    #         if (engine.streamExport(reference.getId(),
-    #                 simplified ? Export.PROVENANCE_SIMPLIFIED : Export.PROVENANCE_FULL, format, output)) {
-    #             return output.toString();
-    #         }
-    #     } catch (IOException e) {
-    #         throw new KlabIOException(e);
-    #     }
-
-    #     return null;
-    # }
 
     # @Override
     # public Context with(Observable concept, Object value) {

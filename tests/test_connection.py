@@ -9,6 +9,7 @@ from klab.utils import Export, ExportFormat
 import klab
 import logging
 import asyncio
+import tempfile
 
 TESTSLOGGER = logging.getLogger("klab-client-py-tests")
 
@@ -54,8 +55,8 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         geometry = KlabGeometry.create(geometrySpecs)
         obs = Observable.create("earth:Region")
         
-        contextTask = await self.klab.submit(obs, geometry)
-        context = await contextTask.get()
+        ticketHandler = self.klab.submit(obs, geometry)
+        context = await ticketHandler.get()
         self.assertIsNotNone(context)
 
     def test_context_observation(self):
@@ -67,8 +68,8 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         obs = Observable.create("earth:Region")
         grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
 
-        contextTask = await self.klab.submit(obs, grid)
-        context = await contextTask.get()
+        ticketHandler = self.klab.submit(obs, grid)
+        context = await ticketHandler.get()
         self.assertIsNotNone(context)
 
     def test_direct_observation(self):
@@ -80,8 +81,8 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         obs = Observable.create("earth:Region")
         grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
         obsElev = Observable.create("geography:Elevation")
-        contextTask = await self.klab.submit(obs, grid, obsElev)
-        context = await contextTask.get()
+        ticketHandler = self.klab.submit(obs, grid, obsElev)
+        context = await ticketHandler.get()
 
         self.assertIsNotNone(context)
 
@@ -102,8 +103,8 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         obs = Observable.create("earth:Region")
         grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
         obsElev = Observable.create("geography:Elevation")
-        contextTask = await self.klab.submit(obs, grid, obsElev)
-        context = await contextTask.get()
+        ticketHandler = self.klab.submit(obs, grid, obsElev)
+        context = await ticketHandler.get()
 
         self.assertIsNotNone(context)
 
@@ -132,29 +133,114 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
         obsElev = Observable.create("landcover:LandCoverType").named("landcover")
   
-        contextTask = await self.klab.submit(obs, grid, obsElev)
-        context = await contextTask.get()
+        ticketHandler = self.klab.submit(obs, grid, obsElev)
+        context = await ticketHandler.get()
         self.assertIsNotNone(context)
 
         landcover = context.getObservation("landcover")
         self.assertIsNotNone(landcover)
 
-    def test_spatial_objects(self):
-        asyncio.run(self._test_spatial_objects())
+    def test_spatial_vector_objects(self):
+        asyncio.run(self._test_spatial_vector_objects())
 
-    async def _test_spatial_objects(self):
+    async def _test_spatial_vector_objects(self):
         obs = Observable.create("earth:Region")
         grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
-        contextTask = await self.klab.submit(obs, grid)
-        context = await contextTask.get()
+        ticketHandler = self.klab.submit(obs, grid)
+        context = await ticketHandler.get()
         self.assertIsNotNone(context)
 
-        newContext = await context.submit(Observable.create("infrastructure:Town"))
-        towns = await newContext.get()
+        ticketHandler = context.submit(Observable.create("infrastructure:Town"))
+        towns = await ticketHandler.get()
         self.assertTrue(isinstance(towns, Observation))
 
         geojson = towns.exportToString(Export.DATA, ExportFormat.GEOJSON_FEATURES)
         self.assertIsNotNone(geojson)
+
+    def test_spatial_raster_objects(self):
+        asyncio.run(self._test_spatial_raster_objects())
+
+    async def _test_spatial_raster_objects(self):
+        obs = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        ticketHandler = self.klab.submit(obs, grid)
+        context = await ticketHandler.get()
+
+        self.assertIsNotNone(context)
+
+        obsElev = Observable.create("geography:Elevation")
+        ticketHandler = context.submit(obsElev)
+        elevation = await ticketHandler.get()
+        self.assertIsNotNone(elevation)
+
+        f = tempfile.NamedTemporaryFile(mode = "w")
+        path = f.name
+        f.close()
+
+        geotiff = elevation.exportToFile(Export.DATA, ExportFormat.GEOTIFF_RASTER, path)
+        self.assertIsNotNone(geotiff)
+    
+    def test_spatial_objects_in_catalog(self):
+        asyncio.run(self._test_spatial_objects_in_catalog())
+
+    async def _test_spatial_objects_in_catalog(self):
+        obsRegion = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        obsTown = Observable.create("infrastructure:Town")
+        ticketHandler = self.klab.submit(obsRegion, grid, obsTown)
+        context = await ticketHandler.get()
+        self.assertIsNotNone(context)
+
+        obs = context.getObservation("town")
+        self.assertIsNotNone(obs)
+
+    def test_direct_named_observation(self):
+        asyncio.run(self._test_direct_named_observation())
+
+    async def _test_direct_named_observation(self):
+        obsRegion = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        obsElev = Observable.create("geography:Elevation").unit("ft").named("zurba")
+        ticketHandler = self.klab.submit(obsRegion, grid, obsElev)
+        context = await ticketHandler.get()
+        self.assertIsNotNone(context)
+
+        self.assertIsNone(context.getObservation("elevation"))
+        self.assertIsNotNone(context.getObservation("zurba"))
+
+
+        dataRange = context.getObservation("zurba").getDataRange()
+        range = Range(0, 3000)
+        self.assertFalse(range.contains(dataRange))
+
+    def test_estimate_observation(self):
+        asyncio.run(self._test_estimate_observation())
+
+    async def _test_estimate_observation(self):
+        obsRegion = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        obsElev = Observable.create("geography:Elevation")
+        ticketHandler = self.klab.estimate(obsRegion, grid, obsElev)
+        estimate = await ticketHandler.get()
+        self.assertIsNotNone(estimate)
+        self.assertIsNotNone(estimate.estimateId)
+
+        if estimate.cost >= 0:
+            ticketHandler = self.klab.submitEstimate(estimate)
+            context = await ticketHandler.get()
+
+            self.assertIsNotNone(context)
+            self.assertIsNotNone(context.getObservation("elevation"))
+
+            dataflow = context.getDataflow(ExportFormat.KDL_CODE);
+            self.assertIsNotNone(dataflow)
+            self.assertTrue(len(dataflow) > 0)
+            
+            provenance = context.getProvenance(True, ExportFormat.ELK_GRAPH_JSON);
+            self.assertIsNotNone(provenance)
+            self.assertTrue(len(provenance) > 0)
+        
+
 
 if __name__ == "__main__":
     unittest.main()

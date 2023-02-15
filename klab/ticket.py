@@ -136,21 +136,21 @@ class Estimate():
         self._feasible = "true" == feasible
 
     @property
-    def getCost(self) -> float:
+    def cost(self) -> float:
         """The cost of the estimate, converted to the user currency returned by `getCurrency()`"""
         return self._cost
 
     @property
-    def getCurrency(self) -> str:
+    def currency(self) -> str:
         """The currency of the estimate (ISO code). If the estimate is in raw k.LAB credits, this will return "KLB"."""
         return self._currency
 
     @property
-    def getEstimateId(self) -> str:
+    def estimateId(self) -> str:
         return self._estimateId
 
     @property
-    def getTicketType(self) -> TicketType:
+    def ticketType(self) -> TicketType:
         return self._ticketType
 
     # @property

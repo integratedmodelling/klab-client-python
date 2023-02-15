@@ -4,6 +4,7 @@ from .observable import Observable
 from .observation import Context, ContextRequest
 from .geometry import KlabGeometry
 from .exceptions import *
+from .ticket import Estimate, TicketType
 import asyncio
 
 import logging
@@ -73,7 +74,7 @@ class Klab:
             return self.engine.deauthenticate();
         return True
         
-    async def submit(self, contextType:Observable,  geometry:KlabGeometry, *arguments:list ) -> TicketHandler:
+    def submit(self, contextType:Observable,  geometry:KlabGeometry, *arguments:list ) -> TicketHandler:
         """
         Call with a concept and geometry to create the context observation (accepting all costs) and
         optionally further observations as semantic types or options.
@@ -104,6 +105,55 @@ class Klab:
             ticket = self.engine.submitContext(request)
             if ticket:
                 LOGGER.debug(f"got ticket: {ticket}")
+                return TicketHandler(self.engine, ticket.id, None)
+
+        raise KlabIllegalArgumentException(f"Cannot build observation request from arguments: {arguments}")
+    
+    def submitEstimate(self, estimate:Estimate) -> TicketHandler:
+        if estimate.ticketType != TicketType.ContextEstimate:
+            raise KlabIllegalArgumentException("the estimate passed is not a context estimate");
+
+        LOGGER.debug(f"klab submit estimate with: {estimate}")
+        ticket = self.engine.submitEstimate(estimate.estimateId)
+        if ticket:
+            LOGGER.debug(f"got ticket: {ticket}")
+            return TicketHandler(self.engine, ticket.id, None)
+        
+        raise KlabIllegalStateException("estimate cannot be used");
+
+
+    def estimate(self, contextType:Observable,  geometry:KlabGeometry, *arguments:list ) -> TicketHandler:
+        """
+        Call with a concept and geometry to retrieve an estimate of the cost of making the context
+        observation described. Add any observations to be made in the context as semantic types or
+        options.
+        
+        @param contextType the type of the context. The Explorer sets that as earth:Region by
+               default.
+        @param geometry the geometry for the context. Use {@link GeometryBuilder} to create fluently.
+        @param arguments pass observables for further observations to be made in the context (if
+               passed, the task will finish after all have been computed). Strings will be
+               interpreted as scenario URNs.
+        
+        @return a TicketHandler; call get() to wait until the estimate is ready and retrieve it.
+        """
+        request = ContextRequest()
+        request.contextType = str(contextType)
+        request.geometry = geometry.encode()
+        request.estimate = True
+
+        LOGGER.debug(f"klab submit with: {request}")
+
+        for o in arguments:
+            if isinstance(o, Observable):
+                request.observables.append(o)
+            elif isinstance(o, str):
+                request.scenarios.append(o)
+
+        if request.geometry != None and request.contextType != None:
+            ticket = self.engine.submitContext(request)
+            if ticket:
+                LOGGER.debug(f"got estimate ticket: {ticket}")
                 return TicketHandler(self.engine, ticket.id, None)
 
         raise KlabIllegalArgumentException(f"Cannot build estimate request from arguments: {arguments}")

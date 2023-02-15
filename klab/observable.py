@@ -73,11 +73,11 @@ class Observable():
     """
 
     def __init__(self, s:str):
-        self.semantics = s
-        self.name = None
-        self.unit = None
-        self.value = None
-        self.range = None
+        self._semantics = s
+        self._name = None
+        self._unit = None
+        self._value = None
+        self._range = None
 
     @staticmethod
     def create(s):
@@ -85,50 +85,50 @@ class Observable():
     
 
     def named(self, name):
-        if self.name:
+        if self._name:
             raise KlabIllegalStateException("cannot add modifiers more than once")
         
-        self.name = name
+        self._name = name
         return self
     
     def range(self, range:Range):
-        if self.unit or self.range:
+        if self._unit or self._range:
             raise KlabIllegalStateException("cannot add modifiers more than once")
 
-        self.range = range
+        self._range = range
         return self
     
 
     def value(self, value:any):
-        if self.value:
+        if self._value:
             raise KlabIllegalStateException("cannot add modifiers more than once")
         
-        self.value = value
+        self._value = value
         return self
 
     def unit(self, unit):
         """Pass a valid unit or currency. No validation is done."""
-        if self.unit or self.range:
+        if self._unit or self._range:
             raise KlabIllegalStateException("cannot add modifiers more than once")
         
-        self.unit = unit
+        self._unit = unit
         return self
 
     def __str__(self) -> str:
         string = ""
-        if self.value:
-            string += f"{self.value} as "
-        string += self.semantics
-        if self.range:
-            string += f" {self.range.getLowerBound()} to {self.range.getUpperBound()}"
-        if self.unit:
-            string += f" in {self.unit}"
-        if self.name:
-            string += f" named {self.name}"
+        if self._value:
+            string += f"{self._value} as "
+        string += self._semantics
+        if self._range:
+            string += f" {self._range.getLowerBound()} to {self._range.getUpperBound()}"
+        if self._unit:
+            string += f" in {self._unit}"
+        if self._name:
+            string += f" named {self._name}"
         return string
 
     def getName(self):
-        return self.name
+        return self._name
 
 
 
