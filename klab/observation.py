@@ -51,7 +51,7 @@ class ObservationExportFormat():
         self._extension = extension
 
 
-class ObservationImpl():
+class Observation():
 
     def __init__(self, reference: ObservationReference, engine):
         self.reference = reference
@@ -123,7 +123,7 @@ class ObservationImpl():
             if not ret:
                 ref = self.engine.getObservation(id)
                 if ref and ref.id:
-                    ret = ObservationImpl(ref, self.engine)
+                    ret = Observation(ref, self.engine)
                     self.catalog[id] = ret
                 else:
                     raise KlabRemoteException(
@@ -331,7 +331,7 @@ class ContextRequest():
         return f"ContextRequest [\n\turn={self.urn}\n\contextType={self.contextType}\n\geometry={self.geometry}\n\tscenarios={self.scenarios}]"
 
 
-class ContextImpl(ObservationImpl):
+class Context(Observation):
 
     def __init__(self, reference: ObservationReference, engine):
         super().__init__(reference, engine)
@@ -369,7 +369,7 @@ class ContextImpl(ObservationImpl):
         raise KlabIllegalArgumentException(
             f"Cannot build estimate request from arguments: {arguments}")
 
-    async def submit(self, observable: Observable, arguments: list) -> ObservationImpl:
+    async def submit(self, observable: Observable, arguments: list) -> Observation:
 
         request = ObservationRequest()
         request.contextId = self.reference.id
@@ -474,7 +474,7 @@ class ContextImpl(ObservationImpl):
     #     *
     #     * @param ret
     #     */
-    def updateWith(self, ret: ObservationImpl):
+    def updateWith(self, ret: Observation):
         pass
     #     this.reference = engine.getObservation(reference.getId());
     #     for (String name : this.reference.getChildIds().keySet()) {

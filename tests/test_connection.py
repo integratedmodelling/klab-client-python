@@ -122,5 +122,21 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         self.assertTrue(aggregated > 0)
         self.assertIsNone(scalar)
 
+    def test_categories(self):
+        asyncio.run(self._test_categories())
+
+    async def _test_categories(self):
+        obs = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        obsElev = Observable.create("landcover:LandCoverType").named("landcover")
+  
+        contextTask = await self.klab.submit(obs, grid, obsElev)
+        context = await contextTask.get()
+        self.assertIsNotNone(context)
+
+        landcover = context.getObservation("landcover")
+        self.assertIsNotNone(landcover)
+
+
 if __name__ == "__main__":
     unittest.main()

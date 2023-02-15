@@ -1,7 +1,7 @@
 from .engine import Engine, TicketHandler
 from .utils import DEFAULT_LOCAL_ENGINE_URL
 from .observable import Observable
-from .observation import ContextImpl, ContextRequest
+from .observation import Context, ContextRequest
 from .geometry import KlabGeometry
 from .exceptions import *
 import asyncio

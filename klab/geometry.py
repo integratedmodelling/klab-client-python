@@ -84,7 +84,7 @@ def compareDimensions(item1, item2):
         return 0
 
 
-class DimensionImpl():
+class Dimension():
     def __init__(self) -> None:
         self.regular = False
         self.dimensionality = 0
@@ -98,7 +98,7 @@ class DimensionImpl():
         return self.type
 
     def copy(self):
-        ret = DimensionImpl()
+        ret = Dimension()
         ret.type = self.type
         ret.regular = self.regular
         ret.dimensionality = self.dimensionality
@@ -278,10 +278,10 @@ class KlabGeometry():
         ret._scalar = True
         return ret
 
-    def newDimension(self) -> DimensionImpl:
-        return DimensionImpl()
+    def newDimension(self) -> Dimension:
+        return Dimension()
 
-    def addDimension(self, dim: DimensionImpl):
+    def addDimension(self, dim: Dimension):
         self.dimensions.append(dim)
 
     @staticmethod
@@ -434,7 +434,7 @@ class KlabGeometry():
         return ret
 
     @staticmethod
-    def encodeDimension(dim: DimensionImpl) -> str:
+    def encodeDimension(dim: Dimension) -> str:
         ret = ""
 
         if dim.getType() == DimensionType.SPACE:
@@ -528,7 +528,7 @@ class KlabSpace():
 
 
 class SpaceBuilder():
-    def __init__(self, space: DimensionImpl) -> None:
+    def __init__(self, space: Dimension) -> None:
         self.space = space
 
     def generic(self):
@@ -567,12 +567,12 @@ class SpaceBuilder():
         self.space.parameters[PARAMETER_SPACE_GRIDRESOLUTION] = gridResolution
         return self
 
-    def build(self) -> DimensionImpl:
+    def build(self) -> Dimension:
         return self.space
 
 
 class TimeBuilder():
-    def __init__(self, time: DimensionImpl) -> None:
+    def __init__(self, time: Dimension) -> None:
         self.time = time
 
     def generic(self):
@@ -607,7 +607,7 @@ class TimeBuilder():
         self.time.regular = False
         return self
 
-    def build(self) -> DimensionImpl:
+    def build(self) -> Dimension:
         return self.time
 
 
@@ -675,13 +675,13 @@ class GeometryBuilder():
         return utcStart.timestamp() * 1000
 
     def space(self) -> SpaceBuilder:
-        self._space = DimensionImpl()
+        self._space = Dimension()
         self._space.type = DimensionType.SPACE
         self._space.dimensionality = 2
         return SpaceBuilder(self._space)
 
     def time(self) -> TimeBuilder:
-        self._time = DimensionImpl()
+        self._time = Dimension()
         self._time.type = DimensionType.TIME
         self._time.dimensionality = 1
         return TimeBuilder(self._time)

@@ -1,7 +1,7 @@
 import requests
 from .exceptions import *
 from .utils import EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC,P_EXPORT,P_OBSERVATION,P_TICKET
-from .observation import ObservationReference, Export, ExportFormat, ObservationRequest, ContextImpl, ObservationImpl, ContextRequest
+from .observation import ObservationReference, Export, ExportFormat, ObservationRequest, Context, Observation, ContextRequest
 from .ticket import Ticket, TicketResponse, TicketStatus, TicketType, Estimate
 import asyncio
 
@@ -208,7 +208,7 @@ class Engine:
 
 
 class TicketHandler():
-    def __init__(self,  engine: Engine, ticketId: str, context: ContextImpl) -> None:
+    def __init__(self,  engine: Engine, ticketId: str, context: Context) -> None:
         self.engine = engine
         self.ticketId = ticketId
         self.context = context
@@ -272,7 +272,7 @@ class TicketHandler():
             artSplit = ticket.data["artifacts"].split(",")
             for oid in artSplit:
                 bean = self.engine.getObservation(oid)
-                ret = ObservationImpl(bean, self.engine)
+                ret = Observation(bean, self.engine)
                 if self.context and ret and ret.reference:
                     self.context.updateWith(ret)
                 return ret
@@ -280,7 +280,7 @@ class TicketHandler():
 
     def makeContext(self, ticket: Ticket):
         bean = self.engine.getObservation(ticket.data.get("context"))
-        context = ContextImpl(bean, self.engine)
+        context = Context(bean, self.engine)
         if "artifacts" in ticket.data:
             artSplit = ticket.data["artifacts"].split(",")
             for oid in artSplit:
