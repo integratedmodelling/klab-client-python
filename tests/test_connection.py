@@ -10,6 +10,7 @@ import klab
 import logging
 import asyncio
 import tempfile
+import os
 
 TESTSLOGGER = logging.getLogger("klab-client-py-tests")
 
@@ -173,7 +174,7 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         elevation = await ticketHandler.get()
         self.assertIsNotNone(elevation)
 
-        f = tempfile.NamedTemporaryFile(mode = "w")
+        f = tempfile.NamedTemporaryFile(mode = "w", prefix="klab_test", suffix=".tif" )
         path = f.name
         f.close()
 
@@ -269,6 +270,35 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
         provenance = context.getProvenance(True, ExportFormat.ELK_GRAPH_JSON);
         self.assertIsNotNone(provenance)
         self.assertTrue(len(provenance) > 0)
+
+    def test_image_export(self):
+        asyncio.run(self._test_image_export())
+
+    async def _test_image_export(self):
+        obs = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        ticketHandler = self.klab.submit(obs, grid)
+        context = await ticketHandler.get()
+        self.assertIsNotNone(context)
+
+        obsElev = Observable.create("geography:Elevation")
+        ticketHandler = context.submit(obsElev)
+        elevation = await ticketHandler.get()
+        self.assertIsNotNone(elevation)
+
+        f = tempfile.NamedTemporaryFile(mode = "w", prefix="klab_test_ruaha", suffix=".png" )
+        path = f.name
+        f.close()
+
+        elevation.exportToFile(Export.DATA, ExportFormat.PNG_IMAGE, path,["viewport", "900"])
+
+        self.assertTrue(os.path.exists(path))
+        self.assertTrue(os.path.getsize(path) > 10000)
+        print(path)
+
+        elevation.exportToString(Export.LEGEND, ExportFormat.JSON_CODE)
+
+
 
 
 if __name__ == "__main__":

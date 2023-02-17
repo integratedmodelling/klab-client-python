@@ -81,7 +81,7 @@ class Observation():
 
     def exportToFile(self, target:Export,  format: ExportFormat,  path:str, parameters:list = []) -> bool:
         stream = io.BytesIO()
-        self.export(target, format, stream)
+        self.export(target, format, stream, parameters)
         with open(path, 'wb') as file:
             file.write(stream.getbuffer())
         

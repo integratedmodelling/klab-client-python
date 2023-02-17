@@ -94,10 +94,10 @@ class Engine:
             if mediaType == 'application/json':
                 jsonResponse = response.json()
                 return jsonResponse
-            elif response.text:
+            elif mediaType == 'text/plain':
                 return response.text
             else:
-                response.content
+                return response.content
 
 
     def post(self, endpoint:str, request:any, pathVariables:list = None):
@@ -150,7 +150,8 @@ class Engine:
     def addParams(self, endpoint, parameters=[]):
         parms = ""
         if parameters:
-            for i in range(0, len(parameters)):
+            i = 0
+            while i < len(parameters):
                 if parms == "":
                     parms += "?"
                 else:
@@ -158,6 +159,7 @@ class Engine:
                 parms += str(parameters[i])
                 i += 1
                 parms += "=" + str(parameters[i])
+                i += 1
 
         return f"{endpoint}{parms}"
 
@@ -173,7 +175,7 @@ class Engine:
 
     def streamExport(self, observationId: str, target: Export,  format: ExportFormat, output: io.BytesIO, parameters: list = []) -> bool:
         endpoint = EndPoint.EXPORT_DATA.value.replace(P_EXPORT, target.name.lower()).replace(P_OBSERVATION, observationId)
-        self.addParams(endpoint, parameters)
+        endpoint = self.addParams(endpoint, parameters)
 
         self.accept(format.getMediaType())
 
@@ -195,6 +197,8 @@ class Engine:
             elif format == ExportFormat.KDL_CODE:
                 res = bytes(ret, 'utf-8')
                 output.write(res) # TODO check this
+            elif format == ExportFormat.PNG_IMAGE:
+                output.write(ret)
                     
             return True
         else:
