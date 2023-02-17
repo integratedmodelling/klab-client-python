@@ -240,6 +240,35 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
             self.assertIsNotNone(provenance)
             self.assertTrue(len(provenance) > 0)
         
+    def test_contextual_observation(self):
+        asyncio.run(self._test_contextual_observation())
+
+    async def _test_contextual_observation(self):
+        obs = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        ticketHandler = self.klab.submit(obs, grid)
+        context = await ticketHandler.get()
+
+        self.assertIsNotNone(context)
+
+        obsElev = Observable.create("geography:Elevation")
+        ticketHandler = context.submit(obsElev)
+        elevation = await ticketHandler.get()
+        self.assertIsNotNone(elevation)
+        
+        dataRange = elevation.getDataRange()
+        range = Range(500, 2500)
+        self.assertTrue(dataRange.contains(range))
+
+        #  ensure the context has been updated with the new observation
+        self.assertTrue(isinstance(context.getObservation("elevation"), Observation))
+        dataflow = context.getDataflow(ExportFormat.KDL_CODE);
+        self.assertIsNotNone(dataflow)
+        self.assertTrue(len(dataflow) > 0)
+            
+        provenance = context.getProvenance(True, ExportFormat.ELK_GRAPH_JSON);
+        self.assertIsNotNone(provenance)
+        self.assertTrue(len(provenance) > 0)
 
 
 if __name__ == "__main__":

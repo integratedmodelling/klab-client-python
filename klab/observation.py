@@ -462,23 +462,16 @@ class Context(Observation):
     #     return this;
     # }
 
-    # /*
-    #     * Called after an observation to update the context data and ensure the context
-    #     * has the new observation in its catalog.
-    #     *
-    #     * @Non-API should be package private
-    #     *
-    #     * @param ret
-    #     */
     def updateWith(self, ret: Observation):
-        pass
-    #     this.reference = engine.getObservation(reference.getId());
-    #     for (String name : this.reference.getChildIds().keySet()) {
-    #         if (ret.reference.getId().equals(this.reference.getChildIds().get(name))) {
-    #             catalogIds.put(name, ret.reference.getId());
-    #             catalog.put(ret.reference.getId(), ret);
-    #             break;
-    #         }
-    #     }
+        """
+        Called after an observation to update the context data and ensure the context
+        has the new observation in its catalog.
+        """
+        self.reference = self.engine.getObservation(self.reference.id)
+        names = list(self.reference.childIds.keys())
+        for name in names:
+            if ret.reference.id == self.reference.childIds.get(name):
+                self.catalogIds[name] = ret.reference.id
+                self.catalog[ret.reference.id] = ret
+                break;
 
-    # }
