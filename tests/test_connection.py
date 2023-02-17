@@ -17,7 +17,8 @@ TESTSLOGGER = logging.getLogger("klab-client-py-tests")
 # run with python3 -m unittest discover tests/
 
 
-class TestKlabConnection(IsolatedAsyncioTestCase):
+
+class BaseTestClass():
     logging.basicConfig(format = '%(asctime)s|%(module)s|%(levelname)s: %(message)s',
                     datefmt = '%Y-%m-%d %H:%M:%S', level = logging.DEBUG)
 
@@ -36,12 +37,6 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
     boundingBox = "-7.256596802202454 -4.408874148363334 38.39721372248553 40.02677860935444"
     wkbShape = "00000000030000000100000007C01D06C14FE6DEF24043B5F39D8BB550C0160A7B8B2DC6224044036D7B41B470C011A2AFE79D99FB4043B5C0443B5A7CC014D2EFCFADC624404355FA189A597CC0199C599EE6C5B8404332D7E635CC84C01C3D49F12A6BC440437995016B4E6CC01D06C14FE6DEF24043B5F39D8BB550"
 
-    def setUp(self):
-        self.klab = Klab.create()
-
-    def tearDown(self) -> None:
-        if self.klab:
-            self.assertTrue(self.klab.close())
 
     def test_local_connection(self):
         self.assertIsNotNone(self.klab)
@@ -315,6 +310,28 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
 
         value = constantState.getScalarValue()
         self.assertEqual(value, 100.0)
+
+
+class TestLocalConnection(BaseTestClass, IsolatedAsyncioTestCase):
+
+    def setUp(self):
+        self.klab = Klab.create()
+
+    def tearDown(self) -> None:
+        if self.klab:
+            self.assertTrue(self.klab.close())
+
+
+class TestRemoteConnection(BaseTestClass, IsolatedAsyncioTestCase):
+    pass
+    # TODO 
+    # def setUp(self):
+    #     self.klab = Klab.create()
+
+    # def tearDown(self) -> None:
+    #     if self.klab:
+    #         self.assertTrue(self.klab.close())
+
 
 if __name__ == "__main__":
     unittest.main()
