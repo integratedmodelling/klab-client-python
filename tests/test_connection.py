@@ -298,8 +298,23 @@ class TestKlabConnection(IsolatedAsyncioTestCase):
 
         elevation.exportToString(Export.LEGEND, ExportFormat.JSON_CODE)
 
+    def test_constant_observation(self):
+        asyncio.run(self._test_constant_observation())
 
+    async def _test_constant_observation(self):
+        obs = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        ticketHandler = self.klab.submit(obs, grid)
+        context = await ticketHandler.get()
+        self.assertIsNotNone(context)
 
+        obsElev = Observable.create("geography:Elevation").unit("m").value(100)
+        ticketHandler = context.submit(obsElev)
+        constantState = await ticketHandler.get()
+        self.assertIsNotNone(constantState)
+
+        value = constantState.getScalarValue()
+        self.assertEqual(value, 100.0)
 
 if __name__ == "__main__":
     unittest.main()
