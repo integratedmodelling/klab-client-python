@@ -179,7 +179,7 @@ class Engine:
 
         ret = self.get(endpoint)
         if ret:
-            if format == ExportFormat.GEOJSON_FEATURES or format == ExportFormat.JSON_CODE:
+            if format == ExportFormat.GEOJSON_FEATURES or format == ExportFormat.JSON_CODE or format == ExportFormat.ELK_GRAPH_JSON:
                 retType = ret.get('type')
                 if retType == "FeatureCollection":
                     features = ret.get('features')
