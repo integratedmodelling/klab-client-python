@@ -24,29 +24,48 @@ class Engine:
         while self.url.endswith("/"):
             self.url = self.url[0:-1]
 
-    # def authenticate(self, username = None, password = None):
-    #     if username and password:
-    #         pass
-    #     else:
-    #         response = requests.get(api_url)
-
-    def authenticate(self):
+    def authenticate(self, username = None, password = None):
         """Local engine login, no auth necessary."""
 
-        requestUrl = self.makeUrl(EndPoint.PING.value)
-        userAgent = self.getUserAgent()
-        headers = {
-            "User-Agent": userAgent,
-            "Accept": "application/json"
-        }
-        try:
-            response = requests.get(requestUrl, headers=headers)
-            response.raise_for_status()
-        except Exception as err:
-            raise err
+        if username and password:
+            requestUrl = self.makeUrl(EndPoint.AUTHENTICATE_USER.value)
+            userAgent = self.getUserAgent()
+            headers = {
+                "User-Agent": userAgent,
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            }
+            data = {
+                "username": username,
+                "password": password
+            }
+            try:
+                response = requests.post(requestUrl, headers=headers, data=json.dumps(data))
+                response.raise_for_status()
+            except Exception as err:
+                raise err
+            else:
+                jsonResponse = response.json()
+                session = jsonResponse.get("session")
+                if session:
+                    self.token = session
+                else:
+                    raise KlabIllegalStateException(f"Unable to authenticate for user: {username}.")
         else:
-            jsonResponse = response.json()
-            self.token = jsonResponse.get("localSessionId")
+            requestUrl = self.makeUrl(EndPoint.PING.value)
+            userAgent = self.getUserAgent()
+            headers = {
+                "User-Agent": userAgent,
+                "Accept": "application/json"
+            }
+            try:
+                response = requests.get(requestUrl, headers=headers)
+                response.raise_for_status()
+            except Exception as err:
+                raise err
+            else:
+                jsonResponse = response.json()
+                self.token = jsonResponse.get("localSessionId")
 
         return self.token
 
