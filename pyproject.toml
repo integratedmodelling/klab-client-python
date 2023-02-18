@@ -6,13 +6,20 @@ authors = [
     {name = "Ferdinando Villa"},
     {name = "Andrea Antonello"},
 ]
-home-page = "https://integratedmodelling.org/"
 dependencies = [
     "requests>=2.28.2"
 ]
 requires-python = ">=3.8"
 license = {text = "AGPLv3"}
 readme = "README.md"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python"
+]
+
+[project.urls]
+homepage = "https://integratedmodelling.org/"
+repository = "https://github.com/integratedmodelling/klab-client-python.git"
 
 [tool.pdm]
 
