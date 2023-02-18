@@ -216,7 +216,7 @@ class Engine:
             elif format == ExportFormat.KDL_CODE:
                 res = bytes(ret, 'utf-8')
                 output.write(res) # TODO check this
-            elif format == ExportFormat.PNG_IMAGE:
+            elif format == ExportFormat.PNG_IMAGE or ExportFormat.BYTESTREAM:
                 output.write(ret)
                     
             return True

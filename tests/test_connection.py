@@ -12,6 +12,7 @@ import logging
 import asyncio
 import tempfile
 import os
+from zipfile import ZipFile
 
 TESTSLOGGER = logging.getLogger("klab-client-py-tests")
 
@@ -151,8 +152,8 @@ class BaseTestClass():
         towns = await ticketHandler.get()
         self.assertTrue(isinstance(towns, Observation))
 
-        geojson = towns.exportToString(Export.DATA, ExportFormat.GEOJSON_FEATURES)
-        self.assertIsNotNone(geojson)
+        didit = towns.exportToString(Export.DATA, ExportFormat.GEOJSON_FEATURES)
+        self.assertTrue(didit)
 
     def test_spatial_raster_objects(self):
         asyncio.run(self._test_spatial_raster_objects())
@@ -170,12 +171,28 @@ class BaseTestClass():
         elevation = await ticketHandler.get()
         self.assertIsNotNone(elevation)
 
-        f = tempfile.NamedTemporaryFile(mode = "w", prefix="klab_test", suffix=".tif" )
+        # download as zip file with qgis style
+        f = tempfile.NamedTemporaryFile(mode = "w", prefix="klab_test", suffix=".zip" )
         path = f.name
         f.close()
+        didit = elevation.exportToFile(Export.DATA, ExportFormat.GEOTIFF_RASTER, path)
+        self.assertTrue(didit)
+        self.assertTrue(os.path.exists(path))
+        self.assertTrue(os.path.getsize(path) > 10000)
+        with ZipFile(path, 'r') as zipFile:
+            filesCount = len(zipFile.filelist)
+        self.assertTrue(filesCount == 2)
 
-        geotiff = elevation.exportToFile(Export.DATA, ExportFormat.GEOTIFF_RASTER, path)
-        self.assertIsNotNone(geotiff)
+        # download as single tiff file
+        f = tempfile.NamedTemporaryFile(mode = "w", prefix="klab_test", suffix=".tiff" )
+        path = f.name
+        f.close()
+        didit = elevation.exportToFile(Export.DATA, ExportFormat.BYTESTREAM, path)
+        self.assertTrue(didit)
+        self.assertTrue(os.path.exists(path))
+        self.assertTrue(os.path.getsize(path) > 10000)
+
+
     
     def test_spatial_objects_in_catalog(self):
         asyncio.run(self._test_spatial_objects_in_catalog())

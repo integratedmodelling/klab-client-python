@@ -47,6 +47,7 @@ class ExportFormat(Enum):
     PDF_DOCUMENT = ("application/pdf", [Export.REPORT])
     EXCEL_TABLE = ("application/vnd.ms-excel", [Export.VIEW])
     WORD_DOCUMENT = ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", [Export.REPORT])
+    BYTESTREAM = ("application/octet-stream", [Export.DATA])
 
     def getMediaType(self) -> str:
         return self.value[0]
