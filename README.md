@@ -1,6 +1,23 @@
-## k.LAB CLient Python
+# k.LAB CLient Python
 
 A Python client library to interact with a running (local or remote) k.LAB Engine.
+
+This package is a python client for [k.LAB](https://github.com/integratedmodelling/klab). It allows registered users of k.LAB to make observations on the k.LAB semantic web from a Java program using the REST API. After creating a spatial/temporal context root observation as a context, you can submit concepts to be observed in it and the relative observations will be made at the server side and returned. Depending on the semantics submitted, the results will consists of different scientific artifacts that can be exported or inspected as needed through the API.
+
+While the API (both k.LAB's public REST API and the interfaces in this package) should be stable, this code is young - features are still missing and bugs certainly remain. Please submit Github issues as needed.
+
+This README assumes knowledge of k.LAB and semantic modeling. An introduction to both is available as a [technical note](https://docs.integratedmodelling.org/technote/index.html) while more extensive documentation is developed.
+
+
+## Installation
+
+The module can be installed through pip as:
+
+```
+pip install klab-client-py
+```
+
+## Usage
 
 Usage example: observe elevation on a given region
 
@@ -54,4 +71,4 @@ elevation.exportToFile(Export.DATA, ExportFormat.GEOTIFF_RASTER, path)
 ```
 
 
-**For more examples have a look at the testcases in the repository.**
+**For more examples have a look at [the testcases in the repository](https://github.com/integratedmodelling/klab-client-python/tree/main/tests).**
