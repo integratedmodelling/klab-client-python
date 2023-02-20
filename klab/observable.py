@@ -4,20 +4,24 @@ from .utils import NumberUtils
 class Range():
 
     def __init__(self, lower:float = None, upper:float = None, lowerExclusive:bool = None, upperExclusive:bool = None):
+        self.lowerInfinite = True
+        self.upperInfinite = True
         self.lowerBound = NumberUtils.NEGATIVE_INFINITY
         if lower:
             self.lowerBound = lower
+            self.lowerInfinite = False
+
         self.upperBound = NumberUtils.POSITIVE_INFINITY
         if upper:
             self.upperBound = upper
+            self.upperInfinite = False
+
         self.lowerExclusive = False
         if lowerExclusive:
             self.lowerExclusive = lowerExclusive
         self.upperExclusive = False
         if upperExclusive:
             self.upperExclusive = upperExclusive
-        self.lowerInfinite = True
-        self.upperInfinite = True
     
     def getLowerBound(self):
         return self.lowerBound
@@ -50,11 +54,15 @@ class Range():
         if self == other:
             return True
         
-        if not self.lowerInfinite and not other.lowerInfinite and (self.lowerBound >= other.lowerBound if self.lowerExclusive else self.lowerBound > other.lowerBound):
-            return False
+        if not self.lowerInfinite and not other.lowerInfinite:
+            # check lower
+            if self.lowerBound >= other.lowerBound if self.lowerExclusive else self.lowerBound > other.lowerBound:
+                return False
+            
         
-        if not self.upperInfinite and not other.upperInfinite and (self.upperBound <= other.upperBound if self.upperExclusive else self.upperBound < other.upperBound):
-            return False
+        if not self.upperInfinite and not other.upperInfinite:
+            if self.upperBound <= other.upperBound if self.upperExclusive else self.upperBound < other.upperBound:
+                return False
         
         if not self.upperInfinite and other.upperInfinite:
             return False

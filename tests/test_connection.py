@@ -94,6 +94,30 @@ class BaseTestClass():
         self.assertTrue(r1.contains(dataRange))
         self.assertTrue(dataRange.contains(r2))
 
+    def test_direct_observation2(self):
+        asyncio.run(self._test_direct_observation2())
+
+    async def _test_direct_observation2(self):
+        # pass a semantic type and a geometry + a quality to observe. The quality will be available
+        # with the (obvious) name in the context
+        obs = Observable.create("earth:Region")
+        grid = GeometryBuilder().grid(urn= self.ruaha, resolution= "1 km").years(2010).build()
+        obsElev = Observable.create("geography:Elevation < 1000").named("elev_min_1000")
+        ticketHandler = self.klab.submit(obs, grid, obsElev)
+        context = await ticketHandler.get()
+
+        self.assertIsNotNone(context)
+
+        elevation = context.getObservation("elev_min_1000")
+        self.assertIsNotNone(elevation)
+        
+        dataRange = elevation.getDataRange()
+        r1 = Range(0, 3000)
+        r2 = Range(500, 1001)
+
+        self.assertTrue(r1.contains(dataRange))
+        self.assertFalse(dataRange.contains(r2))
+
     def test_aggregated_results(self):
         asyncio.run(self._test_aggregated_results())
 
