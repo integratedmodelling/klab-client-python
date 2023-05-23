@@ -79,31 +79,30 @@ class Observation():
                 self.getObservation(name)
                 break
 
-    def exportToFile(self, target:Export,  format: ExportFormat,  path:str, parameters:list = []) -> bool:
+    def exportToFile(self, target: Export, eformat: ExportFormat,  path: str, parameters: list = []) -> bool:
         stream = io.BytesIO()
-        self.export(target, format, stream, parameters)
+        self.export(target, eformat, stream, parameters)
         with open(path, 'wb') as file:
             file.write(stream.getbuffer())
         
         return True 
 
-    def exportToString(self, target: Export, format: ExportFormat) -> str:
-        if not format.isText():
-            raise KlabIllegalArgumentException(f"illegal export format {format} for string export of {target.name}")
+    def exportToString(self, target: Export, eformat: ExportFormat) -> str:
+        if not eformat.isText():
+            raise KlabIllegalArgumentException(f"illegal export format {eformat} for string export of {target.name}")
         
         stream = io.BytesIO()
-        self.export(target, format, stream)
+        self.export(target, eformat, stream)
 
         bytesBuffer = stream.getvalue()
         return bytesBuffer.decode("utf-8")
 
-
-    def export(self, target: Export,  format: ExportFormat,  output:io.BytesIO,  parameters: list = []) -> bool:
-        if not format.isExportAllowed(target):
+    def export(self, target: Export, eformat: ExportFormat,  output:io.BytesIO,  parameters: list = []) -> bool:
+        if not eformat.isExportAllowed(target):
             raise KlabIllegalArgumentException(
                 "export format is incompatible with target")
 
-        return self.engine.streamExport(self.reference.id, target, format, output, parameters)
+        return self.engine.streamExport(self.reference.id, target, eformat, output, parameters)
 
     def getObservation(self, name: str):
         id = self.catalogIds.get(name)
@@ -135,11 +134,11 @@ class Observation():
     def getScalarValue(self):
         literalValue = self.reference.overallValue
         if literalValue:
-            match self.reference.valueType:
-                case ValueType.BOOLEAN:
-                    return bool(literalValue)
-                case ValueType.NUMBER:
-                    return float(literalValue)
+            if self.reference.valueType == ValueType.BOOLEAN:
+                return bool(literalValue)
+            elif self.reference.valueType == ValueType.NUMBER:
+                return float(literalValue)
+
         return literalValue
 
     def getAggregatedValue(self):
@@ -406,8 +405,6 @@ class Context(Observation):
         raise KlabIllegalArgumentException(
             f"Cannot build observation request from arguments: {arguments}")
 
-    
-
     # @Override
     # public Future<Observation> submit(Estimate estimate) {
 
@@ -424,28 +421,27 @@ class Context(Observation):
 
     # }
 
-    def getDataflow(self, format:ExportFormat) -> str:
-        if format != ExportFormat.ELK_GRAPH_JSON and format != ExportFormat.KDL_CODE:
-            raise KlabIllegalArgumentException(f"cannot export a dataflow to {format.name}")
+    def getDataflow(self, eformat: ExportFormat) -> str:
+        if eformat != ExportFormat.ELK_GRAPH_JSON and eformat != ExportFormat.KDL_CODE:
+            raise KlabIllegalArgumentException(f"cannot export a dataflow to {eformat.name}")
         
         stream = io.BytesIO()
-        self.engine.streamExport(self.reference.id, Export.DATAFLOW, format, stream)
+        self.engine.streamExport(self.reference.id, Export.DATAFLOW, eformat, stream)
         bytesBuffer = stream.getvalue()
         return bytesBuffer.decode("utf-8")
     
-    def getProvenance(self, simplified:bool, format:ExportFormat) -> str:
-        if format != ExportFormat.ELK_GRAPH_JSON and format != ExportFormat.KIM_CODE:
-            raise KlabIllegalArgumentException(f"cannot export the provenance graph to {format.name}")
+    def getProvenance(self, simplified: bool, eformat: ExportFormat) -> str:
+        if eformat != ExportFormat.ELK_GRAPH_JSON and eformat != ExportFormat.KIM_CODE:
+            raise KlabIllegalArgumentException(f"cannot export the provenance graph to {eformat.name}")
         
         exp = Export.PROVENANCE_FULL
         if simplified:
             exp = Export.PROVENANCE_SIMPLIFIED
 
         stream = io.BytesIO()
-        self.engine.streamExport(self.reference.id, exp, format, stream)
+        self.engine.streamExport(self.reference.id, exp, eformat, stream)
         bytesBuffer = stream.getvalue()
         return bytesBuffer.decode("utf-8")
-
 
     # @Override
     # public Context with(Observable concept, Object value) {
@@ -473,5 +469,4 @@ class Context(Observation):
             if ret.reference.id == self.reference.childIds.get(name):
                 self.catalogIds[name] = ret.reference.id
                 self.catalog[ret.reference.id] = ret
-                break;
-
+                break

@@ -1,6 +1,7 @@
 from .types import KimConceptType, ShapeType, ValueType, ObservationType, GeometryType, TimeResolutionType
 from .utils import NumberUtils, ExportFormat
 
+
 class ActionReference():
     """
     Describes a possible action to be performed on an observation. The engine
@@ -17,7 +18,7 @@ class ActionReference():
     sub-menus.
     """
 
-    def __init__(self, label:str = None, id:str = None) -> None:
+    def __init__(self, label:str = None, id: str = None) -> None:
         self._actionLabel = label
         self._actionId = id
         self._downloadUrl = None
@@ -27,7 +28,7 @@ class ActionReference():
         self._submenu = []
 
     @staticmethod
-    def fromDict(dataMap:dict):
+    def fromDict(dataMap: dict):
         if not dataMap:
             return None
         ar = ActionReference()
@@ -41,8 +42,8 @@ class ActionReference():
         return ar
     
     @staticmethod
-    def fromList(dataList:list):
-        return [ ActionReference.fromDict(obj) for obj in dataList ]
+    def fromList(dataList: list):
+        return [ActionReference.fromDict(obj) for obj in dataList]
 
 
 class ScaleReference():
@@ -88,7 +89,7 @@ class ScaleReference():
         # private int year = -1;
 
     @staticmethod
-    def fromDict(dataMap:dict):
+    def fromDict(dataMap: dict):
         if not dataMap:
             return None
         sr = ScaleReference()
@@ -120,23 +121,22 @@ class ScaleReference():
         sr._metadata = dataMap.get('metadata')
         return sr
 
-
-
     # TODO add properties
 
     def __str__(self) -> str:
-        return f"ScaleReference [east={self.east}, west={self.west}, north={self.north}, south={self.south}, spaceScale={self.spaceScale}, resolutionDescription={self.spaceResolutionDescription}]"
+        return f"ScaleReference [east={self.east}, west={self.west}, north={self.north}, south={self.south}, " \
+               f"spaceScale={self.spaceScale}, resolutionDescription={self.spaceResolutionDescription}]"
 
 
 class ObservationExportFormat():
-    def __init__(self, label:str = None, value:str = None, adapter:str = None, extension:str = None) -> None:
+    def __init__(self, label: str = None, value: str = None, adapter: str = None, extension: str = None) -> None:
         self._label = label
         self._value = value
         self._adapter = adapter
         self._extension = extension
 
     @staticmethod
-    def fromDict(dataMap:dict):
+    def fromDict(dataMap: dict):
         if not dataMap:
             return None
         oef = ObservationExportFormat()
@@ -147,7 +147,7 @@ class ObservationExportFormat():
         return oef
     
     @staticmethod
-    def fromList(dataList:list):
+    def fromList(dataList: list):
         if not dataList:
             return None
         oefList = [ObservationExportFormat.fromDict(oef) for oef in dataList]
@@ -185,8 +185,6 @@ class ObservationExportFormat():
     def extension(self, extension):
         self._extension = extension
 
-        
-
 
 class DataSummary():
 
@@ -200,7 +198,7 @@ class DataSummary():
         self._categories = []
 
     @staticmethod
-    def fromDict(dataMap:dict):
+    def fromDict(dataMap: dict):
         if not dataMap:
             return None
         ds = DataSummary()
@@ -268,6 +266,7 @@ class DataSummary():
     @mean.setter
     def mean(self, mean):
         self._mean = mean
+
 
 class ObservationReference():
 
@@ -370,8 +369,8 @@ class ObservationReference():
         obr._contextualized = dataMap.get('contextualized')  # False
         obr._lastUpdate = dataMap.get('lastUpdate')  # 0
         obr._key = dataMap.get('key')  # None
-        obr._scaleReference = ScaleReference.fromDict(dataMap.get('scaleReference') ) # None
-        obr._actions = ActionReference.fromList(dataMap.get('actions') ) # None
+        obr._scaleReference = ScaleReference.fromDict(dataMap.get('scaleReference'))   # None
+        obr._actions = ActionReference.fromList(dataMap.get('actions'))   # None
 
         return obr
 
@@ -726,4 +725,3 @@ class ObservationReference():
     @actions.setter
     def actions(self, actions):
         self._actions = actions
-

@@ -1,9 +1,11 @@
 from .exceptions import KlabIllegalStateException
 from .utils import NumberUtils
 
+
 class Range():
 
-    def __init__(self, lower:float = None, upper:float = None, lowerExclusive:bool = None, upperExclusive:bool = None):
+    def __init__(self, lower: float = None, upper: float = None, lowerExclusive: bool = None,
+                 upperExclusive: bool = None):
         self.lowerInfinite = True
         self.upperInfinite = True
         self.lowerBound = NumberUtils.NEGATIVE_INFINITY
@@ -58,8 +60,7 @@ class Range():
             # check lower
             if self.lowerBound >= other.lowerBound if self.lowerExclusive else self.lowerBound > other.lowerBound:
                 return False
-            
-        
+
         if not self.upperInfinite and not other.upperInfinite:
             if self.upperBound <= other.upperBound if self.upperExclusive else self.upperBound < other.upperBound:
                 return False
@@ -73,14 +74,13 @@ class Range():
         return True
     
 
-
 class Observable():
     """
     Textual peer of a true observable with fluent API and minimal validation.
     Used to discriminate observables in inputs of the observation functions.
     """
 
-    def __init__(self, s:str):
+    def __init__(self, s: str):
         self._semantics = s
         self._name = None
         self._unit = None
@@ -90,7 +90,6 @@ class Observable():
     @staticmethod
     def create(s):
         return Observable(s)
-    
 
     def named(self, name):
         if self._name:
@@ -99,7 +98,7 @@ class Observable():
         self._name = name
         return self
     
-    def range(self, range:Range):
+    def range(self, range: Range):
         if self._unit or self._range:
             raise KlabIllegalStateException("cannot add modifiers more than once")
 
@@ -107,7 +106,7 @@ class Observable():
         return self
     
 
-    def value(self, value:any):
+    def value(self, value: any):
         if self._value:
             raise KlabIllegalStateException("cannot add modifiers more than once")
         
@@ -137,7 +136,3 @@ class Observable():
 
     def getName(self):
         return self._name
-
-
-
-
