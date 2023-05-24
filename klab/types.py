@@ -1,14 +1,17 @@
 from .exceptions import KlabIllegalArgumentException
 from enum import Enum
 
+
 class Granularity(Enum):
         SINGLE = "SINGLE"
         MULTIPLE = "MULTIPLE"
+
 
 class DimensionType(Enum):
         NUMEROSITY = "NUMEROSITY"
         TIME = "TIME"
         SPACE = "SPACE"
+
 
 class ShapeType(Enum):
     EMPTY="EMPTY" 
@@ -245,7 +248,7 @@ class GeometryType(Enum):
     """
 
     @staticmethod
-    def fromValue(value:str):
+    def fromValue(value: str):
         if not value:
             return None
         for gt in GeometryType:
@@ -254,13 +257,14 @@ class GeometryType(Enum):
         raise KlabIllegalArgumentException(f"No GeometryType available by the value: {value}")
 
     @staticmethod
-    def fromListToSet(value:list):
+    def fromListToSet(value: list):
         gts = set()
         for v in value:
             gt = GeometryType.fromValue(v)
             if gt:
                 gts.add(gt)
         return gts
+
 
 class TimeResolutionType(Enum):
     MILLENNIUM=0
@@ -276,7 +280,7 @@ class TimeResolutionType(Enum):
     MILLISECOND=10
 
     @staticmethod
-    def fromValue(value:int):
+    def fromValue(value: int):
         if not value:
             return None
         for trt in TimeResolutionType:

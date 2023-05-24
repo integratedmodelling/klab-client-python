@@ -24,7 +24,7 @@ class Engine:
         while self.url.endswith("/"):
             self.url = self.url[0:-1]
 
-    def authenticate(self, username = None, password = None):
+    def authenticate(self, username=None, password=None):
         """Local engine login, no auth necessary."""
 
         if username and password:
@@ -86,12 +86,11 @@ class Engine:
     def isOnline(self):
         return self.token != None
     
-    def accept(self, mediaType:str):
+    def accept(self, mediaType: str):
         self.acceptHeader = mediaType
         return self
-	
 
-    def get(self, endpoint:str, parameters:list=None):
+    def get(self, endpoint: str, parameters: list = None):
         mediaType = "application/json"
         if self.acceptHeader:
             mediaType = self.acceptHeader
@@ -118,8 +117,7 @@ class Engine:
             else:
                 return response.content
 
-
-    def post(self, endpoint:str, request:any, pathVariables:list = None):
+    def post(self, endpoint:str, request: any, pathVariables:list = None):
         mediaType = "application/json"
         if self.acceptHeader:
             mediaType = self.acceptHeader
@@ -142,15 +140,13 @@ class Engine:
         }
 
         try:
-            response = requests.post(requestUrl, headers=headers, data=request.toJson() )
+            response = requests.post(requestUrl, headers=headers, data=request.toJson())
             response.raise_for_status()
         except Exception as err:
             raise err
         else:
             jsonResponse = response.json()
             return jsonResponse
-    
-
 
     def makeUrl(self, endpoint, parameters=[]):
         parms = ""
@@ -186,14 +182,17 @@ class Engine:
         return "k.LAB/" + KLAB_VERSION + " (" + USER_AGENT_PLATFORM + ")"
 
     def getObservation(self, artifactId: str) -> ObservationReference:
-        endpoint = EndPoint.EXPORT_DATA.value.replace(P_EXPORT, Export.STRUCTURE.name.lower()).replace(P_OBSERVATION, artifactId)
+        endpoint = EndPoint.EXPORT_DATA.value.replace(P_EXPORT, Export.STRUCTURE.name.lower()).replace(P_OBSERVATION,
+                                                                                                       artifactId)
         ret = self.get(endpoint)
         if not ret or 'id' not in ret:
             return None
         return ObservationReference.fromDict(ret)
 
-    def streamExport(self, observationId: str, target: Export,  format: ExportFormat, output: io.BytesIO, parameters: list = []) -> bool:
-        endpoint = EndPoint.EXPORT_DATA.value.replace(P_EXPORT, target.name.lower()).replace(P_OBSERVATION, observationId)
+    def streamExport(self, observationId: str, target: Export,  format: ExportFormat, output: io.BytesIO,
+                     parameters: list = []) -> bool:
+        endpoint = EndPoint.EXPORT_DATA.value.replace(P_EXPORT, target.name.lower()).replace(P_OBSERVATION,
+                                                                                             observationId)
         endpoint = self.addParams(endpoint, parameters)
 
         self.accept(format.getMediaType())
@@ -223,7 +222,6 @@ class Engine:
         else:
             return False
 
-
     def submitObservation(self, request: ObservationRequest) -> Ticket:
         """Submit context request, return ticket number or null in case of error"""
         endpoint = EndPoint.OBSERVE_IN_CONTEXT.value.replace(P_CONTEXT, request.contextId)
@@ -234,9 +232,7 @@ class Engine:
         
         return None
 
-
-
-    def submitContext(self, request:ContextRequest) -> Ticket:
+    def submitContext(self, request: ContextRequest) -> Ticket:
         """Submit context request, return ticket number or null in case of error"""
         LOGGER.debug(f"submit context...")
         response = self.post(EndPoint.CREATE_CONTEXT.value, request)
@@ -244,14 +240,12 @@ class Engine:
             return Ticket.fromDict(response)
         
         return None
-	
 
     def submitEstimate(self, estimateId: str) -> Ticket:
         endpoint = EndPoint.SUBMIT_ESTIMATE.value.replace(P_ESTIMATE, estimateId)
         response = self.get(endpoint)
         if response:
             return Ticket.fromDict(response)
-	
 
     def getTicket(self, ticketId: str) -> Ticket:
         LOGGER.debug(f"get ticket info...")
@@ -259,7 +253,6 @@ class Engine:
         if ret and 'id' in ret:
             return Ticket.fromDict(ret)
         return None  
-        
 
 
 class TicketHandler():
@@ -280,7 +273,7 @@ class TicketHandler():
     def isDone(self) -> bool:
         return self.result != None
 
-    async def get(self, timeoutSeconds:int = 900):
+    async def get(self, timeoutSeconds: int = 900):
         if self.isCancelled():
             return None
         time = 0
@@ -309,18 +302,17 @@ class TicketHandler():
         return None
 
     def processTicket(self, ticket: Ticket):
-        match ticket.type:
-            case TicketType.ContextEstimate:
-                return self.makeEstimate(ticket)
-            case TicketType.ObservationEstimate:
-                return self.makeEstimate(ticket)
-            case TicketType.ContextObservation:
-                return self.makeContext(ticket)
-            case TicketType.ObservationInContext:
-                return self.makeObservation(ticket)
-
-        raise KlabInternalErrorException(
-            f"unexpected ticket type: {ticket.type}")
+        if ticket.type == TicketType.ContextEstimate:
+            return self.makeEstimate(ticket)
+        elif ticket.type == TicketType.ObservationEstimate:
+            return self.makeEstimate(ticket)
+        elif ticket.type == TicketType.ContextObservation:
+            return self.makeContext(ticket)
+        elif ticket.type == TicketType.ObservationInContext:
+            return self.makeObservation(ticket)
+        else:
+            raise KlabInternalErrorException(
+                f"unexpected ticket type: {ticket.type}")
 
     def makeObservation(self,  ticket: Ticket) -> any:
         if "artifacts" in ticket.data:
@@ -342,6 +334,6 @@ class TicketHandler():
                 context.notifyObservation(oid)
         return context
 
-    def makeEstimate(self,  ticket:Ticket):
+    def makeEstimate(self,  ticket: Ticket):
         return Estimate(ticket.data.get("estimate"), float(ticket.data.get("cost")),
                 ticket.data.get("currency"), ticket.type, ticket.data.get("feasible"))

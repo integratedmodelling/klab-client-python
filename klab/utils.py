@@ -25,6 +25,7 @@ P_OBSERVATION = "{observation}"
 P_TICKET = "{ticket}"
 P_ESTIMATE = "{estimate}"
 
+
 class Export(Enum):
     STRUCTURE = "structure"
     DATA = "data"
@@ -34,6 +35,7 @@ class Export(Enum):
     DATAFLOW = "dataflow"
     PROVENANCE_FULL = "provenance_full"
     PROVENANCE_SIMPLIFIED = "provenance_simplified"
+
 
 class ExportFormat(Enum):
     PNG_IMAGE = ("image/png", [Export.DATA, Export.LEGEND, Export.VIEW])
@@ -56,7 +58,7 @@ class ExportFormat(Enum):
         mt = self.value[0]
         return "text/plain" == mt or "application/json" == mt or "text/csv" == mt
     
-    def isExportAllowed( self, export:Export ) -> bool:
+    def isExportAllowed(self, export: Export) -> bool:
         allowedList = self.value[1]
         return export in allowedList
     
@@ -64,7 +66,7 @@ class ExportFormat(Enum):
         return f"{self.value[0]}"
 
     @staticmethod
-    def fromMediaType(value:str):
+    def fromMediaType(value: str):
         if not value:
             return None
         for ef in ExportFormat:
@@ -73,7 +75,7 @@ class ExportFormat(Enum):
         raise KlabIllegalArgumentException(f"No ExportFormat available by the value: {value}")
 
     @staticmethod
-    def fromMediaTypeList(value:list):
+    def fromMediaTypeList(value: list):
         efl = []
         for v in value:
             ef = ExportFormat.fromValue(v)
@@ -85,16 +87,19 @@ class ExportFormat(Enum):
     
 class EndPoint(Enum):
     AUTHENTICATE_USER = API_BASE + "/users/log-in"
-    """Called by users to log in and receive an authentication token for a remote engine. Duplicate from HUB. POST with username and password in data."""
+    """Called by users to log in and receive an authentication token for a remote engine. Duplicate from HUB. 
+    POST with username and password in data."""
 
     DEAUTHENTICATE_USER = API_BASE + "/users/log-out"
     """Called by users to log off from a remote engine. Duplicate from HUB."""
 
     CREATE_CONTEXT = PUBLIC_BASE + "/submit/context"
-    """Post a `ContextRequest` to create a context or get an estimate for it. Returns a ticket to poll and retrieve the outcome when done."""
+    """Post a `ContextRequest` to create a context or get an estimate for it. Returns a ticket to poll and retrieve 
+    the outcome when done."""
 
     OBSERVE_IN_CONTEXT = PUBLIC_BASE + "/submit/observation/" + P_CONTEXT
-    """Post a `ObservationRequest` to make an observation in an existing context or get an estimate for it. Returns a a ticket to poll and retrieve the outcome when done."""
+    """Post a `ObservationRequest` to make an observation in an existing context or get an estimate for it. Returns 
+    a ticket to poll and retrieve the outcome when done."""
 
     SUBMIT_ESTIMATE = PUBLIC_BASE + "/submit/estimate/" + P_ESTIMATE
     """Call as GET with an estimate ID to accept the estimate and start an observation (context
@@ -158,7 +163,6 @@ class EndPoint(Enum):
 #     """Parameter: a codelist name for GET requests."""
 
 
-
 #     AUTHENTICATE_USER = "/api/v2/users/log-in"
 #     """
 #     Called by users to log in and receive an authentication token for a remote engine.
@@ -192,7 +196,7 @@ class NumberUtils():
             return False
 
     @staticmethod
-    def objectArrayFromString( array:str,  splitRegex:str, cls:type) -> list:
+    def objectArrayFromString(array: str,  splitRegex: str, cls: type) -> list:
 
         if array.startswith("["):
             array = array[1:]
@@ -226,8 +230,8 @@ class NumberUtils():
         return ret
 
     @staticmethod
-    def podArrayFromString(array:str, splitRegex:str, cls):
-        pods = NumberUtils.objectArrayFromString(array, splitRegex, cls);
+    def podArrayFromString(array: str, splitRegex: str, cls):
+        pods = NumberUtils.objectArrayFromString(array, splitRegex, cls)
         iret = [None]*len(pods)
         fret = [None]*len(pods)
         bret = [None]*len(pods)
@@ -237,24 +241,23 @@ class NumberUtils():
 
         for i in  range(0, len(pods)):
             if isinstance(pods[i], float):
-                cl = 4;
+                cl = 4
                 fret[i] = pods[i]
                 nd+=1
             elif isinstance(pods[i], int):
                 cl = 2
-                iret[i] = pods[i];
+                iret[i] = pods[i]
                 ni+=1
             elif isinstance(pods[i],bool):
-                cl = 5;
+                cl = 5
                 bret[i] = pods[i]
                 ni+=1
             
-        match cl:
-            case 2:
-                return iret
-            case 4:
-                return fret
-            case 5:
-                return bret
+        if cl == 2:
+            return iret
+        elif cl == 4:
+            return fret
+        elif cl == 5:
+            return bret
         
-        raise KlabIllegalArgumentException("cannot turn array into PODs: type not handled");
+        raise KlabIllegalArgumentException("cannot turn array into PODs: type not handled")

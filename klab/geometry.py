@@ -189,8 +189,6 @@ class Dimension():
     def getParameters(self) -> dict:
         return self.parameters
 
-
-
     # public void setType(Type type) {
     #     this.type = type;
     # }
@@ -628,7 +626,8 @@ class GeometryBuilder():
             self.space().urn(urn).size(1).build()
         return self
 
-    def grid(self, x1: float = None, x2: float = None, y1: float = None, y2: float = None, resolution: str = None, urn: str = None):
+    def grid(self, x1: float = None, x2: float = None, y1: float = None, y2: float = None, resolution: str = None,
+             urn: str = None):
         """
         A grid can be created from:
 

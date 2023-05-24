@@ -12,7 +12,6 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 
-
 class Klab:
     """
     The main k.LAB client class. A client object represents a user session in a local or remote
@@ -34,9 +33,8 @@ class Klab:
             self.engine = Engine(url)
             self.session = self.engine.authenticate();
 
-
     @staticmethod
-    def create(remoteOrLocalEngineUrl = DEFAULT_LOCAL_ENGINE_URL, username = None, password = None):
+    def create(remoteOrLocalEngineUrl = DEFAULT_LOCAL_ENGINE_URL, username=None, password=None):
         """
         Authenticate with a local or remote engine and open a new user session. Call `close()` to free
         remote resources.
@@ -67,14 +65,14 @@ class Klab:
         bool:
             true is the engine is online..
         """
-        return self.engine.isOnline();
+        return self.engine.isOnline()
     
     def close(self):
         if self.engine.isOnline():
-            return self.engine.deauthenticate();
+            return self.engine.deauthenticate()
         return True
         
-    def submit(self, contextType:Observable,  geometry:KlabGeometry, *arguments:list ) -> TicketHandler:
+    def submit(self, contextType: Observable,  geometry: KlabGeometry, *arguments: list) -> TicketHandler:
         """
         Call with a concept and geometry to create the context observation (accepting all costs) and
         optionally further observations as semantic types or options.
@@ -86,7 +84,6 @@ class Klab:
             passed, the task will finish after all have been computed). Strings will be
             interpreted as scenario URNs.
         """
-
 
         request = ContextRequest()
         request.contextType = str(contextType)
@@ -111,7 +108,7 @@ class Klab:
     
     def submitEstimate(self, estimate:Estimate) -> TicketHandler:
         if estimate.ticketType != TicketType.ContextEstimate:
-            raise KlabIllegalArgumentException("the estimate passed is not a context estimate");
+            raise KlabIllegalArgumentException("the estimate passed is not a context estimate")
 
         LOGGER.debug(f"klab submit estimate with: {estimate}")
         ticket = self.engine.submitEstimate(estimate.estimateId)
@@ -119,10 +116,9 @@ class Klab:
             LOGGER.debug(f"got ticket: {ticket}")
             return TicketHandler(self.engine, ticket.id, None)
         
-        raise KlabIllegalStateException("estimate cannot be used");
+        raise KlabIllegalStateException("estimate cannot be used")
 
-
-    def estimate(self, contextType:Observable,  geometry:KlabGeometry, *arguments:list ) -> TicketHandler:
+    def estimate(self, contextType: Observable,  geometry: KlabGeometry, *arguments: list) -> TicketHandler:
         """
         Call with a concept and geometry to retrieve an estimate of the cost of making the context
         observation described. Add any observations to be made in the context as semantic types or
@@ -157,4 +153,3 @@ class Klab:
                 return TicketHandler(self.engine, ticket.id, None)
 
         raise KlabIllegalArgumentException(f"Cannot build estimate request from arguments: {arguments}")
-
