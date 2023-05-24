@@ -69,7 +69,7 @@ except:
     url = 'K.LAB local instance'
 
 if klab.isOnline():
-    print(f'* connection to {url} was successfully established.')
+    print(f'* connection to {url} was successfully established. session: {klab.session}')
 else:
     raise EnvironmentError('could not establish connection to the klab instance')
 
