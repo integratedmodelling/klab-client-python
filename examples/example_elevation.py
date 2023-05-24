@@ -18,18 +18,8 @@ from klab.observable import Observable
 from klab.observation import Observation
 from klab.utils import Export, ExportFormat
 import asyncio
-import yaml
 import os
 
-
-# function to load credentials and remote engine URL
-def load_credentials():
-    """ Helper function to load the credentials to init the klab remote instance"""
-    file_path = os.path.join(os.path.expanduser("~"), r'aries_access_credentials.yaml')
-
-    with open(file_path) as settings:
-        settings_data = yaml.load(settings, Loader=yaml.Loader)
-    return settings_data
 
 
 # create a function to retrieve the needed data --> needed to trigger asyncio
@@ -56,13 +46,11 @@ async def ARIES_request(klab, area_WKT: str, obs_res: str, obs_year: int, observ
 # here starts the work
 # create a new klab client instance
 try:
-    # get the credentials for the remote klab engine
-    remote_engine = load_credentials()
+    home = os.path.expanduser('~')
+    credentialsFile = os.path.join(home, ".klab", "testcredentials.properties")
 
-    klab = Klab.create(remoteOrLocalEngineUrl=remote_engine.get('url'),
-                       username=remote_engine.get('username'),
-                       password=remote_engine.get('pass'))
-    url = remote_engine.get("url")
+    klab = Klab.create(credentialsFile=credentialsFile)
+    url = klab.url
 except:
     # if no credentials are setup try to access a local klab engine
     klab = Klab.create()
@@ -80,7 +68,7 @@ observable = "geography:Elevation"
 observation_resolution = "1 km"
 observation_time = 2010
 
-export_format = ExportFormat.GEOTIFF_RASTER
+export_format = ExportFormat.BYTESTREAM
 out_path = os.path.normpath(r'./elevation_test.tif')
 
 # now we can run the asyncio function and execute the data retrival
