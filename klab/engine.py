@@ -17,7 +17,8 @@ class Engine:
     """
 
     def __init__(self, url):
-        self.token = None
+        self.session = None
+        self.authorization = None
         self.url = url
         self.acceptHeader = None
 
@@ -46,9 +47,11 @@ class Engine:
                 raise err
             else:
                 jsonResponse = response.json()
-                session = jsonResponse.get("session")
-                if session:
-                    self.token = session
+                sessionId = jsonResponse.get("session")
+                auth = jsonResponse.get("authorization")
+                if sessionId and auth:
+                    self.session = sessionId
+                    self.authorization = auth
                 else:
                     raise KlabIllegalStateException(f"Unable to authenticate for user: {username}.")
         else:
@@ -65,9 +68,8 @@ class Engine:
                 raise err
             else:
                 jsonResponse = response.json()
-                self.token = jsonResponse.get("localSessionId")
+                self.session = jsonResponse.get("localSessionId")
 
-        return self.token
 
     def deauthenticate(self):
         # TODO this doesn't have a backend implementation yet, for now return true
@@ -84,7 +86,7 @@ class Engine:
         return True
 
     def isOnline(self):
-        return self.token != None
+        return self.session != None
     
     def accept(self, mediaType: str):
         self.acceptHeader = mediaType
@@ -101,7 +103,8 @@ class Engine:
         headers = {
             "User-Agent": userAgent,
             "Accept": mediaType,
-            "Authorization": self.token
+            "Authorization": self.session,
+            "Authentication": self.authorization
         }
         try:
             response = requests.get(requestUrl, headers=headers)
@@ -136,7 +139,8 @@ class Engine:
             "User-Agent": userAgent,
             "Content-Type": "application/json",
             "Accept": mediaType,
-            "Authorization": self.token
+            "Authorization": self.session,
+            "Authentication": self.authorization
         }
 
         try:

@@ -371,30 +371,9 @@ class TestRemoteConnection(BaseTestClass, IsolatedAsyncioTestCase):
     def setUp(self):
         home = os.path.expanduser('~')
         credentialsFile = os.path.join(home, ".klab", "testcredentials.properties")
-        username = None
-        password = None
-        testEngine = "https://developers.integratedmodelling.org/modeler"
-        if os.path.exists(credentialsFile):
-            with open(credentialsFile, 'r') as file:
-                lines = file.readlines()
-            for line in lines:
-                line = line.strip().split("=")
-                key = line[0].strip()
-                value = line[1].strip()
-                if key == "username":
-                    username = value
-                elif key == "password":
-                    password = value
-                elif key == "engine":
-                    testEngine = value
-        else:
-            raise KlabResourceNotFoundException("Can't open ~/.klab/testcredentials.properties with username and passwords for test engine.")
 
+        self.klab = Klab.create(credentialsFile=credentialsFile)
 
-        if username and password and testEngine:
-            self.klab = Klab.create(remoteOrLocalEngineUrl=testEngine, username=username, password=password)
-        else:
-            raise KlabIllegalArgumentException("Credentials for remote mode testing not found.")
 
     def tearDown(self) -> None:
         if self.klab:

@@ -6,6 +6,7 @@ from .geometry import KlabGeometry
 from .exceptions import *
 from .ticket import Estimate, TicketType
 import asyncio
+import os
 
 import logging
 
@@ -28,13 +29,13 @@ class Klab:
     def __init__(self, url, username=None, password=None):
         if username and password:
             self.engine = Engine(url)
-            self.session = self.engine.authenticate(username, password);
+            self.engine.authenticate(username, password)
         else:
             self.engine = Engine(url)
-            self.session = self.engine.authenticate();
+            self.engine.authenticate()
 
     @staticmethod
-    def create(remoteOrLocalEngineUrl = DEFAULT_LOCAL_ENGINE_URL, username=None, password=None):
+    def create(remoteOrLocalEngineUrl=DEFAULT_LOCAL_ENGINE_URL, username=None, password=None, credentialsFile=None):
         """
         Authenticate with a local or remote engine and open a new user session. Call `close()` to free
         remote resources.
@@ -48,35 +49,66 @@ class Klab:
             necessary only for remote engines.
         password:str
             necessary only for remote engines.
+        credentialsFile:str
+            an optional properties file of credentials to override authentication. The format of the 
+            file is like:
             
+            ```
+            # hash is comment
+            username=myuser
+            password=mypwd
+            engine=https://myurl.org/modeler
+            ```
+
         Returns
         -------
         Klab:
             The created remote Klab instance.
         """
+
+        if credentialsFile:
+            if os.path.exists(credentialsFile):
+                with open(credentialsFile, 'r') as file:
+                    lines = file.readlines()
+                for line in lines:
+                    line = line.strip()
+                    if not line.startswith("#"):
+                        lineSplit = line.split("=")
+                        key = lineSplit[0].strip()
+                        value = lineSplit[1].strip()
+                        if key == "username":
+                            username = value
+                        elif key == "password":
+                            password = value
+                        elif key == "engine":
+                            remoteOrLocalEngineUrl = value
+
+        if not remoteOrLocalEngineUrl:
+            raise KlabIllegalArgumentException(f"No engine url has been set for user: {username}.")
+
         return Klab(remoteOrLocalEngineUrl, username, password)
 
     def isOnline(self):
         """
         Checks if the engine is online. Should always be called after creation to check on the engine status.
-        
+
         Returns
         -------
         bool:
             true is the engine is online..
         """
         return self.engine.isOnline()
-    
+
     def close(self):
         if self.engine.isOnline():
             return self.engine.deauthenticate()
         return True
-        
+
     def submit(self, contextType: Observable,  geometry: KlabGeometry, *arguments: list) -> TicketHandler:
         """
         Call with a concept and geometry to create the context observation (accepting all costs) and
         optionally further observations as semantic types or options.
-        
+
         @param contextType the type of the context. The Explorer sets that as earth:Region by
             default.
         @param geometry the geometry for the context. Use {@link GeometryBuilder} to create fluently.
@@ -97,25 +129,27 @@ class Klab:
                 request.observables.append(o)
             elif isinstance(o, str):
                 request.scenarios.append(o)
-            
+
         if request.geometry != None and request.contextType != None:
             ticket = self.engine.submitContext(request)
             if ticket:
                 LOGGER.debug(f"got ticket: {ticket}")
                 return TicketHandler(self.engine, ticket.id, None)
 
-        raise KlabIllegalArgumentException(f"Cannot build observation request from arguments: {arguments}")
-    
-    def submitEstimate(self, estimate:Estimate) -> TicketHandler:
+        raise KlabIllegalArgumentException(
+            f"Cannot build observation request from arguments: {arguments}")
+
+    def submitEstimate(self, estimate: Estimate) -> TicketHandler:
         if estimate.ticketType != TicketType.ContextEstimate:
-            raise KlabIllegalArgumentException("the estimate passed is not a context estimate")
+            raise KlabIllegalArgumentException(
+                "the estimate passed is not a context estimate")
 
         LOGGER.debug(f"klab submit estimate with: {estimate}")
         ticket = self.engine.submitEstimate(estimate.estimateId)
         if ticket:
             LOGGER.debug(f"got ticket: {ticket}")
             return TicketHandler(self.engine, ticket.id, None)
-        
+
         raise KlabIllegalStateException("estimate cannot be used")
 
     def estimate(self, contextType: Observable,  geometry: KlabGeometry, *arguments: list) -> TicketHandler:
@@ -123,14 +157,14 @@ class Klab:
         Call with a concept and geometry to retrieve an estimate of the cost of making the context
         observation described. Add any observations to be made in the context as semantic types or
         options.
-        
+
         @param contextType the type of the context. The Explorer sets that as earth:Region by
                default.
         @param geometry the geometry for the context. Use {@link GeometryBuilder} to create fluently.
         @param arguments pass observables for further observations to be made in the context (if
                passed, the task will finish after all have been computed). Strings will be
                interpreted as scenario URNs.
-        
+
         @return a TicketHandler; call get() to wait until the estimate is ready and retrieve it.
         """
         request = ContextRequest()
@@ -152,4 +186,5 @@ class Klab:
                 LOGGER.debug(f"got estimate ticket: {ticket}")
                 return TicketHandler(self.engine, ticket.id, None)
 
-        raise KlabIllegalArgumentException(f"Cannot build estimate request from arguments: {arguments}")
+        raise KlabIllegalArgumentException(
+            f"Cannot build estimate request from arguments: {arguments}")
