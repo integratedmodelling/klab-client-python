@@ -4,6 +4,10 @@
     pip install klab-client-py
 
     setup a YAML file with your credentials and place in your Home folder - filename: aries_access_credentials.yaml
+    url: https://developers.integratedmodelling.org/modeler
+    username: <your_data>
+    pass: <your_data>
+
     Note: currently only file search for Windows implemented
 
 """
