@@ -67,7 +67,7 @@ elevation = await ticketHandler.get()
 
 ```
 path = "your path here"
-elevation.exportToFile(Export.DATA, ExportFormat.GEOTIFF_RASTER, path)
+elevation.exportToFile(Export.DATA, ExportFormat.BYTESTREAM, path)
 ```
 
 
