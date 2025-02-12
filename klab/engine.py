@@ -74,7 +74,7 @@ class Engine:
     def deauthenticate(self):
         # TODO this doesn't have a backend implementation yet, for now return true
         # headers = {
-        #     "Authorization":self.token
+        #     "klab-authorization":self.token
         # }
         # requestUrl = self.makeUrl(EndPoint.DEAUTHENTICATE_USER.value)
         # try:
@@ -103,7 +103,7 @@ class Engine:
         headers = {
             "User-Agent": userAgent,
             "Accept": mediaType,
-            "Authorization": self.session,
+            "klab-authorization": self.session,
             "Authentication": self.authorization
         }
         try:
@@ -139,7 +139,7 @@ class Engine:
             "User-Agent": userAgent,
             "Content-Type": "application/json",
             "Accept": mediaType,
-            "Authorization": self.session,
+            "klab-authorization": self.session,
             "Authentication": self.authorization
         }
 
