@@ -165,6 +165,23 @@ class ObservationRequest():
         self._states = {}
         self._objects = {}
 
+    def toDict(self):
+        ret = {
+            "urn": self._urn,
+            "contextId": self._contextId,
+            "estimate": self._estimate,
+            "estimatedCost": self._estimatedCost,
+            "scenarios": list(self._scenarios),  # ensure it's a list
+            "states": list(self._states),
+            "objects": list(self._objects)
+        }
+
+        # Include searchContextId if present
+        if getattr(self, "searchContextId", None):
+            ret["contextSearchId"] = self.searchContextId
+
+        return ret
+
     def toJson(self):
         es = str(self._estimate).lower()
 
@@ -263,17 +280,28 @@ class ContextRequest():
         self._estimate = False
         self._estimatedCost = -1
 
+    def toDict(self):
+        return {
+            "urn": self._urn,
+            "geometry": self._geometry,
+            "contextType": self._contextType,
+            "observables": [str(o) for o in self._observables],
+            "scenarios": [str(s) for s in self._scenarios],
+            "estimate": self._estimate,
+            "estimatedCost": self._estimatedCost
+    }
+        
     def toJson(self):
         es = str(self._estimate).lower()
-
         obs = [str(o) for o in self._observables]
         obs = str(obs).replace("'", "\"")
         scen = [str(s) for s in self._scenarios]
         scen = str(scen).replace("'", "\"")
+        urn = "null" if self._urn is None else self._urn
 
-        ret = """{{"geometry":"{0}","contextType":"{1}","observables":{2},"scenarios":{3},"estimate":{4},"estimatedCost":{5}}}"""
+        ret = """{{"geometry":"{0}","contextType":"{1}","observables":{2},"scenarios":{3},"estimate":{4},"estimatedCost":{5}, "urn": {6}}}"""
         ret = ret.format(self._geometry, self._contextType,
-                         obs, scen, es, self._estimatedCost)
+                         obs, scen, es, self._estimatedCost, urn)
 
         ret = ret.encode('utf-8').decode('unicode-escape')
         return ret

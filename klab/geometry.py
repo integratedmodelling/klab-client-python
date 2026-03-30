@@ -506,7 +506,7 @@ class KlabGeometry():
                 ret += sp + str(v)
             ret += "]"
         else:
-            ret = str(val)
+            ret = KlabGeometry.decodeForSerialization(str(val))
 
         return ret
 

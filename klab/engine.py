@@ -103,7 +103,7 @@ class Engine:
         headers = {
             "User-Agent": userAgent,
             "Accept": mediaType,
-            "Authorization": self.session,
+            "klab-authorization": self.session,
             "Authentication": self.authorization
         }
         try:
@@ -139,7 +139,7 @@ class Engine:
             "User-Agent": userAgent,
             "Content-Type": "application/json",
             "Accept": mediaType,
-            "Authorization": self.session,
+            "klab-authorization": self.session,
             "Authentication": self.authorization
         }
 
@@ -152,6 +152,7 @@ class Engine:
             jsonResponse = response.json()
             return jsonResponse
 
+    
     def makeUrl(self, endpoint, parameters=[]):
         parms = ""
         if parameters:
