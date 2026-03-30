@@ -74,7 +74,7 @@ class Engine:
     def deauthenticate(self):
         # TODO this doesn't have a backend implementation yet, for now return true
         # headers = {
-        #     "Authorization":self.token
+        #     "klab-authorization":self.token
         # }
         # requestUrl = self.makeUrl(EndPoint.DEAUTHENTICATE_USER.value)
         # try:
