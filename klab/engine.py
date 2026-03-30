@@ -17,7 +17,8 @@ class Engine:
     """
 
     def __init__(self, url):
-        self.session = None
+        self.session = requests.Session()
+        self.session_id = None
         self.authorization = None
         self.url = url
         self.acceptHeader = None
@@ -41,16 +42,17 @@ class Engine:
                 "password": password
             }
             try:
-                response = requests.post(requestUrl, headers=headers, data=json.dumps(data))
+                response = self.session.post(requestUrl, headers=headers, data=json.dumps(data))
                 response.raise_for_status()
             except Exception as err:
                 raise err
             else:
                 jsonResponse = response.json()
+                print (jsonResponse)
                 sessionId = jsonResponse.get("session")
                 auth = jsonResponse.get("authorization")
                 if sessionId and auth:
-                    self.session = sessionId
+                    self.session_id = sessionId
                     self.authorization = auth
                 else:
                     raise KlabIllegalStateException(f"Unable to authenticate for user: {username}.")
@@ -62,13 +64,13 @@ class Engine:
                 "Accept": "application/json"
             }
             try:
-                response = requests.get(requestUrl, headers=headers)
+                response = self.session.get(requestUrl, headers=headers)
                 response.raise_for_status()
             except Exception as err:
                 raise err
             else:
                 jsonResponse = response.json()
-                self.session = jsonResponse.get("localSessionId")
+                self.session_id = jsonResponse.get("localSessionId")
 
 
     def deauthenticate(self):
@@ -103,11 +105,11 @@ class Engine:
         headers = {
             "User-Agent": userAgent,
             "Accept": mediaType,
-            "klab-authorization": self.session,
+            "klab-authorization": self.session_id,
             "Authentication": self.authorization
         }
         try:
-            response = requests.get(requestUrl, headers=headers)
+            response = self.session.get(requestUrl, headers=headers)
             response.raise_for_status()
         except Exception as err:
             raise err
@@ -139,12 +141,12 @@ class Engine:
             "User-Agent": userAgent,
             "Content-Type": "application/json",
             "Accept": mediaType,
-            "klab-authorization": self.session,
+            "klab-authorization": self.session_id,
             "Authentication": self.authorization
         }
 
         try:
-            response = requests.post(requestUrl, headers=headers, data=request.toJson())
+            response = self.session.post(requestUrl, headers=headers, data=request.toJson())
             response.raise_for_status()
         except Exception as err:
             raise err
