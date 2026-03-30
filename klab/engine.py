@@ -48,7 +48,6 @@ class Engine:
                 raise err
             else:
                 jsonResponse = response.json()
-                print (jsonResponse)
                 sessionId = jsonResponse.get("session")
                 auth = jsonResponse.get("authorization")
                 if sessionId and auth:
