@@ -90,7 +90,7 @@ def get_klab_instance(fpath: str = STANDARD_PATH) -> Klab:
             raise RuntimeError('Could not establish connection to a k.lab engine')
 
     if klab and klab.isOnline():
-        print(f'* connection to {klab.engine.url} was successfully established. session: {klab.engine.session}')
+        print(f'* connection to {klab.engine.url} was successfully established. session: {klab.engine.session_id}')
     else:
         raise EnvironmentError('could not establish connection to the klab instance')
 
