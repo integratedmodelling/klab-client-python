@@ -1,4 +1,6 @@
 from enum import Enum
+
+from .resources import ObservationResource
 from .utils import NumberUtils, Export, ExportFormat
 from .observable import Observable, Range
 from .exceptions import *
@@ -470,6 +472,9 @@ class Context(Observation):
         self.engine.streamExport(self.reference.id, exp, eformat, stream)
         bytesBuffer = stream.getvalue()
         return bytesBuffer.decode("utf-8")
+    
+    def getResources(self) -> list[ObservationResource]:
+        return self.engine.getResources(self.reference.id)
 
     # @Override
     # public Context with(Observable concept, Object value) {

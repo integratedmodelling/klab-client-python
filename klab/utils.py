@@ -129,7 +129,7 @@ class EndPoint(Enum):
     MESSAGE = "/message"
     """STOMP endpoint for client/server notifications. Handled through Websockets protocol."""
 
-    CAPABILITIES = "/capabilities";
+    CAPABILITIES = "/capabilities"
     """Public capabilities endpoint. Anything that has an API has capabilities."""
 
 # class API():
