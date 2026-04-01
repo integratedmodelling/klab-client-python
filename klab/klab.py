@@ -101,8 +101,7 @@ class Klab:
 
     def close(self):
         if self.engine.isOnline():
-            return self.engine.deauthenticate()
-        return True
+            return self.engine.close()
 
     def submit(self, contextType: Observable,  geometry: KlabGeometry, *arguments: list) -> TicketHandler:
         """

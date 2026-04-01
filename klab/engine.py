@@ -1,5 +1,6 @@
 import requests
 from .exceptions import *
+from .resources import *
 from .utils import Export, ExportFormat, EndPoint, KLAB_VERSION, USER_AGENT_PLATFORM, POLLING_INTERVAL_SEC,P_EXPORT,P_OBSERVATION,P_TICKET, P_CONTEXT,P_ESTIMATE
 from .observation import ObservationReference,  ObservationRequest, Context, Observation, ContextRequest
 from .ticket import Ticket, TicketResponse, TicketStatus, TicketType, Estimate
@@ -92,6 +93,12 @@ class Engine:
     def accept(self, mediaType: str):
         self.acceptHeader = mediaType
         return self
+    
+    def close(self)->None:
+        '''
+        Closes the engine connection. Should be called when the engine is not needed anymore to free resources.
+        '''
+        self.session.close()
 
     def get(self, endpoint: str, parameters: list = None):
         mediaType = "application/json"
@@ -107,6 +114,7 @@ class Engine:
             "klab-authorization": self.session_id,
             "Authentication": self.authorization
         }
+
         try:
             response = self.session.get(requestUrl, headers=headers)
             response.raise_for_status()
@@ -157,15 +165,13 @@ class Engine:
     def makeUrl(self, endpoint, parameters=[]):
         parms = ""
         if parameters:
-            for i in range(0, len(parameters)):
+            for i in range(0, len(parameters), 2):
                 if parms == "":
                     parms += "?"
                 else:
                     parms += "&"
                 parms += str(parameters[i])
-                i += 1
-                parms += "=" + str(parameters[i])
-
+                parms += "=" + str(parameters[i+1])
         return f"{self.url}{endpoint}{parms}"
 
     def addParams(self, endpoint, parameters=[]):
@@ -194,6 +200,19 @@ class Engine:
         if not ret or 'id' not in ret:
             return None
         return ObservationReference.fromDict(ret)
+    
+    def getResources(self, artifactId:str)->list[ObservationResource]:
+        '''
+        Retrieves the list of Resources and Related Information for the given observation
+        with the Artifact Id. Returns a list of ObservationResource objects, or null if the request fails or no resources are found.
+        '''
+        endpoint = EndPoint.EXPORT_DATA.value.replace(P_EXPORT, Export.REPORT.name.lower()).replace(P_OBSERVATION,artifactId)
+        params = [Export.VIEW.value, "resources"]
+        ret = self.get(endpoint, parameters=params)
+        if ret is None:
+            return None
+        return ObservationResource.fromDict(ret)
+
 
     def streamExport(self, observationId: str, target: Export,  format: ExportFormat, output: io.BytesIO,
                      parameters: list = []) -> bool:
