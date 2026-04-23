@@ -348,7 +348,15 @@ class TicketHandler():
                 if self.context and ret and ret.reference:
                     self.context.updateWith(ret)
                 return ret
+        else:
+            LOGGER.info("Resolution Failed by the Engine: unable to create a Dataflow")
+            ret =  Observation(None, self.engine)
+            if self.context and ret and ret.reference:
+                self.context.updateWith(ret)
+            return ret
+        
         return None
+
 
     def makeContext(self, ticket: Ticket):
         bean = self.engine.getObservation(ticket.data.get("context"))
