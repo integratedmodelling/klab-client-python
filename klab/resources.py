@@ -13,7 +13,6 @@ class ObservationResource():
 
     @staticmethod
     def fromDict(d: dict)->list:
-        print (d)
         if not d:
             return None
         
