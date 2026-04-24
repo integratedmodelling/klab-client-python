@@ -349,7 +349,7 @@ class TicketHandler():
                     self.context.updateWith(ret)
                 return ret
         else:
-            LOGGER.info("Resolution Failed by the Engine: unable to create a Dataflow")
+            LOGGER.error("Resolution Failed by the Engine: unable to create a Dataflow")
             ret =  Observation(None, self.engine)
             if self.context and ret and ret.reference:
                 self.context.updateWith(ret)
