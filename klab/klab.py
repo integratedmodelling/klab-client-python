@@ -116,7 +116,7 @@ class Klab:
         KnowledgeSearch:
             a new incremental search connected to the engine.
         """
-        return KnowledgeSearch(self.engine.url, self.engine.session_id)
+        return KnowledgeSearch(self.engine)
 
     def submit(self, contextType: Observable,  geometry: KlabGeometry, *arguments: list) -> TicketHandler:
         """

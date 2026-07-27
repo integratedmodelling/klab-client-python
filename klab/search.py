@@ -1,8 +1,13 @@
 from enum import Enum
+import logging
+
+import requests
 
 from .exceptions import KlabIllegalArgumentException
 from .messagebus import Message, MessageBus, MessageClass, MessageType
 from .types import KimConceptType
+
+LOGGER = logging.getLogger(__name__)
 
 
 class SearchMode(Enum):
@@ -258,14 +263,27 @@ class KnowledgeSearch():
     Use `Klab.knowledgeSearch()` to create one bound to the current session.
     """
 
-    def __init__(self, engineUrl: str, identity: str) -> None:
-        self._bus = MessageBus(engineUrl)
-        self._identity = identity
+    def __init__(self, engine) -> None:
+        self._engine = engine
+        self._identity = engine.session_id
+        self._bus = MessageBus(engine.url)
         self._contextId: str = None
         self._requestId: int = 0
         self._accepted: list = []
         self._status: QueryStatusResponse = None
-        self._bus.connect(identity)
+
+        # Forwarded on the websocket handshake so a remote/clustered engine routes this
+        # connection to the same backend instance that authenticated the session; see
+        # MessageBus.connect for why this matters.
+        headers = []
+        if engine.session_id:
+            headers.append(f"klab-authorization: {engine.session_id}")
+        if engine.authorization:
+            headers.append(f"Authentication: {engine.authorization}")
+        cookies = requests.utils.dict_from_cookiejar(engine.session.cookies)
+        cookie = "; ".join(f"{k}={v}" for k, v in cookies.items())
+
+        self._bus.connect(self._identity, headers=headers, cookie=cookie)
         self._bus.subscribe(self._handleUnsolicited)
 
     def _handleUnsolicited(self, message: Message) -> None:
@@ -273,6 +291,8 @@ class KnowledgeSearch():
             status = QueryStatusResponse.fromDict(message.payload)
             self._status = status
             self._contextId = status.contextId
+        elif message.messageClass == MessageClass.Notification.value:
+            LOGGER.warning(f"knowledge search: notification from engine: {message.payload}")
 
     @property
     def contextId(self) -> str:

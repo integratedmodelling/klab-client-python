@@ -14,7 +14,7 @@ from klab.klab import Klab
 
 
 def main():
-    klab = Klab.create()
+    klab = Klab.create() # for remote Klab.create(url, username=username, password=password)
     if not klab.isOnline():
         print("engine is not online")
         return

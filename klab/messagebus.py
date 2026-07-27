@@ -26,6 +26,7 @@ class MessageClass(Enum):
     Search = "Search"
     UserInterface = "UserInterface"
     EngineLifecycle = "EngineLifecycle"
+    Notification = "Notification"
 
 
 class MessageType(Enum):
@@ -163,14 +164,24 @@ class MessageBus():
         session = "".join(random.choices(string.ascii_letters + string.digits, k=8))
         return f"{scheme}://{rest}/message/{server}/{session}/websocket"
 
-    def connect(self, identity: str, timeoutSeconds: float = 10.0) -> None:
-        """Open the websocket, complete the SockJS+STOMP handshake and subscribe for `identity`."""
+    def connect(self, identity: str, headers: list = None, cookie: str = None, timeoutSeconds: float = 10.0) -> None:
+        """
+        Open the websocket, complete the SockJS+STOMP handshake and subscribe for `identity`.
+
+        `headers`/`cookie` are forwarded on the handshake request so that, on a remote/clustered
+        engine sitting behind a load balancer, this connection lands on the same backend instance
+        that handled the login: the engine keeps registered identities in an in-process map, so a
+        websocket routed to a different instance than the one that authenticated the session would
+        silently never find it and every request would time out with no error at all.
+        """
 
         self._identity = identity
         url = self._wsUrl()
 
         self._ws = websocket.WebSocketApp(
             url,
+            header=headers,
+            cookie=cookie,
             on_message=self._onWsMessage,
             on_error=self._onWsError,
             on_close=self._onWsClose,
