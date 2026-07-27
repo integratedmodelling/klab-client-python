@@ -5,6 +5,7 @@ from .observation import Context, ContextRequest
 from .geometry import KlabGeometry
 from .exceptions import *
 from .ticket import Estimate, TicketType
+from .search import KnowledgeSearch
 import asyncio
 import os
 
@@ -102,6 +103,20 @@ class Klab:
     def close(self):
         if self.engine.isOnline():
             return self.engine.close()
+
+    def knowledgeSearch(self) -> KnowledgeSearch:
+        """
+        Open an incremental knowledge search bound to this session, equivalent to the k.LAB
+        Modeler's knowledge search view. Call `search(text)` on the result at each step of user
+        input to retrieve the matches for the partial query built so far; call `close()` when
+        done with it.
+
+        Returns
+        -------
+        KnowledgeSearch:
+            a new incremental search connected to the engine.
+        """
+        return KnowledgeSearch(self.engine.url, self.engine.session_id)
 
     def submit(self, contextType: Observable,  geometry: KlabGeometry, *arguments: list) -> TicketHandler:
         """

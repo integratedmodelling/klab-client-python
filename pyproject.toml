@@ -1,13 +1,14 @@
 [project]
 name = "klab-client-py"
-version = "0.2.3"
+version = "0.3.0"
 description = "Python client to interact with a running k.LAB Engine."
 authors = [
     {name = "Ferdinando Villa"},
     {name = "Andrea Antonello"},
 ]
 dependencies = [
-    "requests>=2.28.2"
+    "requests>=2.28.2",
+    "websocket-client>=1.2.0"
 ]
 requires-python = ">=3.8"
 license = {text = "AGPLv3"}
